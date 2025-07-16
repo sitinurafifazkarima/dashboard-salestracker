@@ -126,6 +126,7 @@ kinerja_sales = kinerja_sales.sort_values('Tingkat_Konversi (%)', ascending=Fals
 
 
 
+
 # Dua kolom: Kunjungan & Konversi
 col1, col2 = st.columns(2)
 with col1:
@@ -161,6 +162,42 @@ with col2:
         ax.text(val + 0.5, i, f"{val}%", va='center', fontsize=7, color='#222')
     st.pyplot(fig_konversi)
     st.caption(f"<b>Konversi tertinggi:</b> {kinerja_sales.index[0]} ({kinerja_sales['Tingkat_Konversi (%)'].iloc[0]}%)", unsafe_allow_html=True)
+
+# =====================
+# Analisis Customer Baru & Efektivitas Penarikan
+# =====================
+st.markdown("---")
+st.header("🆕 Analisis Customer Baru & Efektivitas Penarikan")
+
+# Asumsi: Customer baru = Status_Customer == 'Baru' (atau bisa disesuaikan)
+df_baru = df[df['Status_Customer'].str.lower().str.contains('baru', na=False)]
+total_cust_baru = df_baru['ID_Customer'].nunique()
+deal_cust_baru = df_baru[df_baru['Status_Kontrak'] == 'Deal']['ID_Customer'].nunique()
+deal_rate_baru = (deal_cust_baru / total_cust_baru * 100) if total_cust_baru else 0
+
+colb1, colb2, colb3 = st.columns(3)
+colb1.metric("Total Customer Baru", f"{total_cust_baru}")
+colb2.metric("Customer Baru Deal", f"{deal_cust_baru}")
+colb3.metric("Deal Rate Customer Baru", f"{deal_rate_baru:.1f}%")
+
+# Breakdown status deal customer baru
+st.subheader("📊 Status Deal Customer Baru")
+status_baru = df_baru['Status_Kontrak'].value_counts()
+fig_sb, ax = plt.subplots(figsize=(4.5, 3))
+bars = ax.bar(status_baru.index, status_baru.values, color=['#32CD32' if s=='Deal' else '#FF7F50' for s in status_baru.index], edgecolor='black')
+for bar in bars:
+    yval = bar.get_height()
+    ax.text(bar.get_x() + bar.get_width()/2, yval + 0.5, int(yval), ha='center', fontsize=8, color='#222')
+ax.set_ylabel("Jumlah Customer Baru", fontsize=8, color='#222')
+ax.set_xlabel("Status Kontrak", fontsize=8, color='#222')
+ax.set_title("Distribusi Status Deal Customer Baru", fontsize=10, color='#00BFFF')
+ax.tick_params(axis='x', labelsize=8, colors='#222')
+ax.tick_params(axis='y', labelsize=8, colors='#222')
+ax.set_facecolor('none')
+fig_sb.patch.set_alpha(0)
+plt.tight_layout(pad=0.5)
+st.pyplot(fig_sb)
+st.caption(f"<b>Insight:</b> Dari total {total_cust_baru} customer baru, {deal_cust_baru} berhasil deal ({deal_rate_baru:.1f}%).", unsafe_allow_html=True)
 
 # =====================
 # Analisis Aktivitas Sales
