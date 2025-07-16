@@ -291,29 +291,41 @@ tahapan_order = ['Inisiasi', 'Presentasi', 'Penawaran Harga', 'Negosiasi', 'Pask
 tahapan_summary['Tahap_Progres'] = pd.Categorical(tahapan_summary['Tahap_Progres'], categories=tahapan_order, ordered=True)
 tahapan_summary = tahapan_summary.sort_values('Tahap_Progres')
 
+
 st.markdown("---")
 st.header("🔁 Funnel Progres Kunjungan")
+st.subheader("� Funnel Analytics: Jumlah Customer di Setiap Tahapan")
 
-st.subheader("📊 Jumlah Customer di Tiap Tahapan Progres (Terakhir)")
+# Funnel diagram dengan matplotlib patches
+import matplotlib.patches as patches
 
+funnel_labels = tahapan_summary['Tahap_Progres'].astype(str).tolist()
+funnel_values = tahapan_summary['Jumlah_Customer'].tolist()
+colors_funnel = ['#FFD700', '#00BFFF', '#32CD32', '#FF7F50', '#9370DB']
 
-st.pyplot(fig)
+fig_funnel, ax = plt.subplots(figsize=(7, 4))
+width_top = 5.5
+height = 0.7
+gap = 0.18
+min_width = 1.5
+for i, (label, value) in enumerate(zip(funnel_labels, funnel_values)):
+    # Lebar proporsional
+    if funnel_values[0] == 0:
+        width = min_width
+    else:
+        width = min_width + (width_top - min_width) * (value / funnel_values[0])
+    left = (width_top - width) / 2
+    bottom = (len(funnel_labels) - i - 1) * (height + gap)
+    rect = patches.FancyBboxPatch((left, bottom), width, height,
+                                  boxstyle="round,pad=0.08", ec="black", fc=colors_funnel[i], alpha=0.85)
+    ax.add_patch(rect)
+    ax.text(width_top/2, bottom + height/2, f"{label}\n{value} Customer", ha='center', va='center', fontsize=11, color='#222', weight='bold')
 
-fig, ax = plt.subplots(figsize=(6, 3.2))
-bars = ax.bar(tahapan_summary['Tahap_Progres'], tahapan_summary['Jumlah_Customer'],
-              color=['#FFD700', '#00BFFF', '#32CD32', '#FF7F50', '#9370DB'], edgecolor='black')
-for bar in bars:
-    yval = bar.get_height()
-    ax.text(bar.get_x() + bar.get_width()/2, yval + 1, int(yval), ha='center', fontsize=8, color='#222')
-ax.set_title("Distribusi Tahapan Progres Kunjungan Terakhir", fontsize=10, color='#00BFFF')
-ax.set_xlabel("Tahapan Progres", fontsize=8, color='#222')
-ax.set_ylabel("Jumlah Customer", fontsize=8, color='#222')
-ax.tick_params(axis='x', labelsize=8, colors='#222')
-ax.tick_params(axis='y', labelsize=8, colors='#222')
-ax.set_facecolor('none')
-fig.patch.set_alpha(0)
-plt.tight_layout(pad=0.6)
-st.pyplot(fig)
+ax.set_xlim(0, width_top)
+ax.set_ylim(0, (height+gap)*len(funnel_labels))
+ax.axis('off')
+fig_funnel.patch.set_alpha(0)
+st.pyplot(fig_funnel)
 
 # Konversi per Segmen
 kunjungan_segmen = df.groupby('Segmen')['ID_Kunjungan'].count().rename('Total_Kunjungan')
