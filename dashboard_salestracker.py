@@ -285,14 +285,13 @@ df_last = df.sort_values(by='Tanggal').groupby('ID_Customer').last().reset_index
 
 
 
-# Hitung cumulative funnel: setiap tahap berisi customer yang progres terakhirnya di tahap itu ATAU lebih lanjut
-tahapan_order = ['Inisiasi', 'Presentasi', 'Penawaran Harga', 'Negosiasi', 'Paska Deal']
-progress_cat = pd.Categorical(df_last['Progress'], categories=tahapan_order, ordered=True)
+
+
+# Hitung jumlah customer unik per tahap funnel (berdasarkan progres terakhirnya tepat di tahap tersebut)
+tahapan_order = ['Inisiasi', 'Presentasi', 'Penawaran Harga', 'Negosiasi']
 tahapan_summary = []
-for i, tahap in enumerate(tahapan_order):
-    # Customer yang progres terakhirnya di tahap ini atau lebih lanjut
-    mask = progress_cat.codes >= i
-    jumlah = mask.sum()
+for tahap in tahapan_order:
+    jumlah = df_last[df_last['Progress'] == tahap]['ID_Customer'].nunique()
     tahapan_summary.append({'Tahap_Progres': tahap, 'Jumlah_Customer': jumlah})
 tahapan_summary = pd.DataFrame(tahapan_summary)
 
@@ -304,9 +303,10 @@ st.subheader("� Funnel Analytics: Jumlah Customer di Setiap Tahapan")
 # Funnel diagram dengan matplotlib patches
 import matplotlib.patches as patches
 
+
 funnel_labels = tahapan_summary['Tahap_Progres'].astype(str).tolist()
 funnel_values = tahapan_summary['Jumlah_Customer'].tolist()
-colors_funnel = ['#FFD700', '#00BFFF', '#32CD32', '#FF7F50', '#9370DB']
+colors_funnel = ['#FFD700', '#00BFFF', '#32CD32', '#FF7F50']
 
 fig_funnel, ax = plt.subplots(figsize=(7, 4))
 width_top = 5.5
