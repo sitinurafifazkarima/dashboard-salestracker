@@ -61,7 +61,12 @@ if status_dipilih != 'Semua':
 if status_cust_dipilih != 'Semua':
     df = df[df['Status_Customer'] == status_cust_dipilih]
 
+
+# =====================
 # KPI Cards (Highlight Metrics)
+# =====================
+st.markdown("---")
+st.markdown("<h3 style='color:#00BFFF;'>🔢 Ringkasan Kinerja Utama</h3>", unsafe_allow_html=True)
 total_kunjungan = df['ID_Kunjungan'].nunique()
 total_deal = df[df['Status_Kontrak'] == 'Deal']['ID_Kunjungan'].nunique()
 total_customer = df['ID_Customer'].nunique()
@@ -75,10 +80,16 @@ colk4.metric("Rata-rata Konversi", f"{avg_konversi:.1f}%", help="Persentase deal
 
 with st.expander("Tampilkan data mentah (raw data)"):
     st.dataframe(df.head(20))
-# --------------------------------------------
-# --------------------------------------------
 
-# Pie chart dengan insight singkat
+st.divider()
+
+
+# =====================
+# Distribusi Data Utama
+# =====================
+st.markdown("<h3 style='color:#00BFFF;'>📊 Distribusi Data Utama</h3>", unsafe_allow_html=True)
+st.write("Distribusi status kontrak, segmen, level sales, dan status customer.")
+
 def draw_pie(data, title):
     fig, ax = plt.subplots(figsize=(3.2, 3.2))
     fig.patch.set_alpha(0)
@@ -99,8 +110,6 @@ def draw_pie(data, title):
     plt.title(title, fontsize=10, color='#00BFFF')
     return fig
 
-
-# Pie chart + insight
 col1, col2, col3, col4 = st.columns(4)
 with col1:
     st.pyplot(draw_pie(df['Status_Kontrak'].value_counts(), "Status Kontrak"))
@@ -115,8 +124,10 @@ with col4:
     st.pyplot(draw_pie(df['Status_Customer'].value_counts(), "Status Customer"))
     st.caption(f"<b>Status dominan:</b> {df['Status_Customer'].value_counts().idxmax()}", unsafe_allow_html=True)
 
-st.markdown("---")
-st.header("📈 Kinerja Sales")
+st.divider()
+st.markdown("<h3 style='color:#00BFFF;'>📈 Kinerja Sales</h3>", unsafe_allow_html=True)
+st.write("Analisis performa sales berdasarkan jumlah kunjungan dan tingkat konversi.")
+
 
 # Siapkan data terlebih dahulu (digunakan di 2 kolom)
 kunjungan_sales = df['Nama_Sales'].value_counts()
@@ -128,13 +139,10 @@ kinerja_sales.columns = ['Total_Kunjungan', 'Jumlah_Deal']
 kinerja_sales['Tingkat_Konversi (%)'] = (kinerja_sales['Jumlah_Deal'] / kinerja_sales['Total_Kunjungan'] * 100).round(2)
 kinerja_sales = kinerja_sales.sort_values('Tingkat_Konversi (%)', ascending=False)
 
-
-
-
-# Dua kolom: Kunjungan & Konversi
 col1, col2 = st.columns(2)
 with col1:
     st.subheader("👥 Total Kunjungan per Sales")
+    st.write("Jumlah kunjungan yang dilakukan oleh masing-masing sales.")
     fig_kunjungan, ax = plt.subplots(figsize=(5.5, 3))
     bars = ax.bar(kunjungan_sales.index, kunjungan_sales.values, color='#00BFFF', edgecolor='black')
     ax.set_ylabel("Jumlah", fontsize=8, color='#222')
@@ -152,6 +160,7 @@ with col1:
     st.caption(f"<b>Sales teraktif:</b> {kunjungan_sales.idxmax()} ({kunjungan_sales.max()} kunjungan)", unsafe_allow_html=True)
 with col2:
     st.subheader("📊 Tingkat Konversi (Deal) per Sales")
+    st.write("Persentase deal yang berhasil dicapai oleh masing-masing sales.")
     fig_konversi, ax = plt.subplots(figsize=(5.5, 3))
     bars = ax.barh(kinerja_sales.index, kinerja_sales['Tingkat_Konversi (%)'],
                    color='#32CD32', edgecolor='black')
@@ -166,6 +175,8 @@ with col2:
         ax.text(val + 0.5, i, f"{val}%", va='center', fontsize=7, color='#222')
     st.pyplot(fig_konversi)
     st.caption(f"<b>Konversi tertinggi:</b> {kinerja_sales.index[0]} ({kinerja_sales['Tingkat_Konversi (%)'].iloc[0]}%)", unsafe_allow_html=True)
+
+st.divider()
 
 # =====================
 # Analisis Customer Baru & Efektivitas Penarikan
