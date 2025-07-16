@@ -1,0 +1,138 @@
+ID_Kunjungan	ID_Customer	Tanggal	Nama_Sales	Level_Sales	Target_Sales	Segmen	Target_Segmen	Jenis_Kunjungan	Nama_Customer	Status_Customer	Status_Kontrak	Catatan	Kunjungan_Ke	Progress
+KJ-001	CUS-001	4/1/2025	Budi Santoso	AM	800000000	Government	900000000	Kunjungan Baru	PT Pemerintah Digital	Baru	Tidak Deal	Perkenalan solusi digital government	1	Inisiasi
+KJ-002	CUS-001	4/15/2025	Budi Santoso	AM	800000000	Government	900000000	Kunjungan Tindak Lanjut	PT Pemerintah Digital	Baru	Tidak Deal	Presentasi produk digital government	2	Presentasi
+KJ-003	CUS-001	4/30/2025	Budi Santoso	AM	800000000	Government	900000000	Kunjungan Tindak Lanjut	PT Pemerintah Digital	Baru	Tidak Deal	Diskusi kebutuhan spesifik	3	Penawaran Harga
+KJ-004	CUS-001	5/12/2025	Budi Santoso	AM	800000000	Government	900000000	Kunjungan Tindak Lanjut	PT Pemerintah Digital	Baru	Tidak Deal	Presentasi revisi penawaran	4	Negosiasi
+KJ-005	CUS-002	4/4/2025	Siti Rahayu	EAM	1200000000	Telco	1500000000	Kunjungan Baru	PT Telkom Nusantara	Lama	Deal	Identifikasi kebutuhan cloud	1	Inisiasi
+KJ-006	CUS-002	4/17/2025	Siti Rahayu	EAM	1200000000	Telco	1500000000	Kunjungan Tindak Lanjut	PT Telkom Nusantara	Lama	Deal	Perpanjangan kontrak solusi cloud	2	Presentasi
+KJ-007	CUS-002	5/2/2025	Siti Rahayu	EAM	1200000000	Telco	1500000000	Kunjungan Tindak Lanjut	PT Telkom Nusantara	Lama	Deal	Diskusi penawaran harga	3	Penawaran Harga
+KJ-008	CUS-002	5/20/2025	Siti Rahayu	EAM	1200000000	Telco	1500000000	Kunjungan Tindak Lanjut	PT Telkom Nusantara	Lama	Deal	Finalisasi kontrak	4	Negosiasi
+KJ-009	CUS-002	6/5/2025	Siti Rahayu	EAM	1200000000	Telco	1500000000	Kunjungan Tindak Lanjut	PT Telkom Nusantara	Lama	Deal	Monitoring implementasi	5	Paska Deal
+KJ-010	CUS-003	4/10/2025	Ahmad Fauzi	AM	750000000	Private	600000000	Kunjungan Baru	CV Maju Bersama	Baru	Tidak Deal	Perkenalan produk dan solusi	1	Inisiasi
+KJ-011	CUS-003	4/20/2025	Ahmad Fauzi	AM	750000000	Private	600000000	Kunjungan Tindak Lanjut	CV Maju Bersama	Baru	Tidak Deal	Masih mempertimbangkan penawaran	2	Presentasi
+KJ-012	CUS-003	5/5/2025	Ahmad Fauzi	AM	750000000	Private	600000000	Kunjungan Tindak Lanjut	CV Maju Bersama	Baru	Tidak Deal	Penyampaian proposal harga	3	Penawaran Harga
+KJ-013	CUS-004	4/5/2025	Dian Permata	EAM	1300000000	SOE	1200000000	Kunjungan Baru	PT Pertamina Digital	Lama	Deal	Pertemuan awal diskusi ERP	1	Inisiasi
+KJ-014	CUS-004	4/22/2025	Dian Permata	EAM	1300000000	SOE	1200000000	Kunjungan Tindak Lanjut	PT Pertamina Digital	Lama	Deal	Implementasi sistem ERP baru	2	Presentasi
+KJ-015	CUS-004	5/10/2025	Dian Permata	EAM	1300000000	SOE	1200000000	Kunjungan Tindak Lanjut	PT Pertamina Digital	Lama	Deal	Penyampaian penawaran harga ERP	3	Penawaran Harga
+KJ-016	CUS-004	5/25/2025	Dian Permata	EAM	1300000000	SOE	1200000000	Kunjungan Tindak Lanjut	PT Pertamina Digital	Lama	Deal	Finalisasi kontrak ERP	4	Negosiasi
+KJ-017	CUS-004	6/10/2025	Dian Permata	EAM	1300000000	SOE	1200000000	Kunjungan Tindak Lanjut	PT Pertamina Digital	Lama	Deal	Kick-off implementasi	5	Paska Deal
+KJ-018	CUS-004	6/28/2025	Dian Permata	EAM	1300000000	SOE	1200000000	Kunjungan Tindak Lanjut	PT Pertamina Digital	Lama	Deal	Progress review implementasi	6	Paska Deal
+KJ-019	CUS-005	4/8/2025	Rudi Hartono	AM	850000000	Regional	800000000	Kunjungan Baru	Pemda Jawa Barat	Win-Back	Deal	Perkenalan solusi baru	1	Inisiasi
+KJ-020	CUS-005	4/25/2025	Rudi Hartono	AM	850000000	Regional	800000000	Kunjungan Tindak Lanjut	Pemda Jawa Barat	Win-Back	Deal	Kembali menggunakan layanan setelah 2 tahun	2	Presentasi
+KJ-021	CUS-005	5/15/2025	Rudi Hartono	AM	850000000	Regional	800000000	Kunjungan Tindak Lanjut	Pemda Jawa Barat	Win-Back	Deal	Negosiasi penawaran harga	3	Penawaran Harga
+KJ-022	CUS-005	6/2/2025	Rudi Hartono	AM	850000000	Regional	800000000	Kunjungan Tindak Lanjut	Pemda Jawa Barat	Win-Back	Deal	Penandatanganan kontrak	4	Negosiasi
+KJ-023	CUS-005	6/20/2025	Rudi Hartono	AM	850000000	Regional	800000000	Kunjungan Tindak Lanjut	Pemda Jawa Barat	Win-Back	Deal	Implementasi awal	5	Paska Deal
+KJ-024	CUS-006	4/12/2025	Maya Susanti	EAM	1250000000	Telco	1500000000	Kunjungan Baru	PT Indosat Ooredoo	Baru	Batal	Perkenalan solusi digital	1	Inisiasi
+KJ-025	CUS-006	4/28/2025	Maya Susanti	EAM	1250000000	Telco	1500000000	Kunjungan Tindak Lanjut	PT Indosat Ooredoo	Baru	Batal	Klien membatalkan di tahap akhir	2	Presentasi
+KJ-026	CUS-007	4/10/2025	Agus Darmawan	AM	780000000	Government	900000000	Kunjungan Baru	Kementerian Keuangan	Lama	Deal	Pertemuan awal diskusi upgrade	1	Inisiasi
+KJ-027	CUS-007	4/30/2025	Agus Darmawan	AM	780000000	Government	900000000	Kunjungan Tindak Lanjut	Kementerian Keuangan	Lama	Deal	Upgrade sistem yang ada	2	Presentasi
+KJ-028	CUS-007	5/18/2025	Agus Darmawan	AM	780000000	Government	900000000	Kunjungan Tindak Lanjut	Kementerian Keuangan	Lama	Deal	Penawaran biaya upgrade	3	Penawaran Harga
+KJ-029	CUS-007	6/5/2025	Agus Darmawan	AM	780000000	Government	900000000	Kunjungan Tindak Lanjut	Kementerian Keuangan	Lama	Deal	Finalisasi upgrade sistem	4	Negosiasi
+KJ-030	CUS-007	6/25/2025	Agus Darmawan	AM	780000000	Government	900000000	Kunjungan Tindak Lanjut	Kementerian Keuangan	Lama	Deal	Monitoring hasil upgrade	5	Paska Deal
+KJ-031	CUS-008	4/18/2025	Dewi Pratiwi	EAM	1350000000	SOE	1200000000	Kunjungan Baru	PT PLN Digital	Win-Back	Tidak Deal	Perkenalan ulang layanan	1	Inisiasi
+KJ-032	CUS-008	5/3/2025	Dewi Pratiwi	EAM	1350000000	SOE	1200000000	Kunjungan Tindak Lanjut	PT PLN Digital	Win-Back	Tidak Deal	Menunggu persetujuan anggaran	2	Presentasi
+KJ-033	CUS-008	5/22/2025	Dewi Pratiwi	EAM	1350000000	SOE	1200000000	Kunjungan Tindak Lanjut	PT PLN Digital	Win-Back	Tidak Deal	Penyampaian penawaran baru	3	Penawaran Harga
+KJ-034	CUS-009	4/20/2025	Hendra Wijaya	AM	820000000	Private	600000000	Kunjungan Baru	PT Retail Sukses	Baru	Cancel	Pertemuan inisiasi proyek	1	Inisiasi
+KJ-035	CUS-009	5/5/2025	Hendra Wijaya	AM	820000000	Private	600000000	Kunjungan Tindak Lanjut	PT Retail Sukses	Baru	Cancel	Klien membatalkan proyek	2	Presentasi
+KJ-036	CUS-010	4/18/2025	Nina Anggraini	EAM	1280000000	Regional	800000000	Kunjungan Baru	Pemprov Sulawesi Selatan	Lama	Deal	Diskusi awal manajemen aset	1	Inisiasi
+KJ-037	CUS-010	5/8/2025	Nina Anggraini	EAM	1280000000	Regional	800000000	Kunjungan Tindak Lanjut	Pemprov Sulawesi Selatan	Lama	Deal	Sistem manajemen aset daerah	2	Presentasi
+KJ-038	CUS-010	5/24/2025	Nina Anggraini	EAM	1280000000	Regional	800000000	Kunjungan Tindak Lanjut	Pemprov Sulawesi Selatan	Lama	Deal	Penawaran harga sistem aset	3	Penawaran Harga
+KJ-039	CUS-010	6/12/2025	Nina Anggraini	EAM	1280000000	Regional	800000000	Kunjungan Tindak Lanjut	Pemprov Sulawesi Selatan	Lama	Deal	Finalisasi negosiasi	4	Negosiasi
+KJ-040	CUS-010	6/30/2025	Nina Anggraini	EAM	1280000000	Regional	800000000	Kunjungan Tindak Lanjut	Pemprov Sulawesi Selatan	Lama	Deal	Kick-off implementasi sistem	5	Paska Deal
+KJ-041	CUS-011	3/25/2025	Budi Santoso	AM	800000000	Telco	1500000000	Kunjungan Baru	PT XL Axiata	Baru	Deal	Perkenalan solusi cybersecurity	1	Inisiasi
+KJ-042	CUS-011	4/15/2025	Budi Santoso	AM	800000000	Telco	1500000000	Kunjungan Tindak Lanjut	PT XL Axiata	Baru	Deal	Presentasi detail solusi	2	Presentasi
+KJ-043	CUS-011	4/28/2025	Budi Santoso	AM	800000000	Telco	1500000000	Kunjungan Tindak Lanjut	PT XL Axiata	Baru	Deal	Penawaran paket cybersecurity	3	Penawaran Harga
+KJ-044	CUS-011	5/10/2025	Budi Santoso	AM	800000000	Telco	1500000000	Kunjungan Tindak Lanjut	PT XL Axiata	Baru	Deal	Solusi cybersecurity terpadu	4	Negosiasi
+KJ-045	CUS-011	5/28/2025	Budi Santoso	AM	800000000	Telco	1500000000	Kunjungan Tindak Lanjut	PT XL Axiata	Baru	Deal	Implementasi solusi keamanan	5	Paska Deal
+KJ-046	CUS-012	4/25/2025	Siti Rahayu	EAM	1200000000	Private	600000000	Kunjungan Baru	PT Bank Central Asia	Win-Back	Deal	Pertemuan inisiasi kembali	1	Inisiasi
+KJ-047	CUS-012	5/12/2025	Siti Rahayu	EAM	1200000000	Private	600000000	Kunjungan Tindak Lanjut	PT Bank Central Asia	Win-Back	Deal	Solusi digital banking baru	2	Presentasi
+KJ-048	CUS-012	5/30/2025	Siti Rahayu	EAM	1200000000	Private	600000000	Kunjungan Tindak Lanjut	PT Bank Central Asia	Win-Back	Deal	Penawaran harga solusi baru	3	Penawaran Harga
+KJ-049	CUS-012	6/15/2025	Siti Rahayu	EAM	1200000000	Private	600000000	Kunjungan Tindak Lanjut	PT Bank Central Asia	Win-Back	Deal	Finalisasi kontrak digital banking	4	Negosiasi
+KJ-050	CUS-013	3/28/2025	Ahmad Fauzi	AM	750000000	SOE	1200000000	Kunjungan Baru	PT Pupuk Indonesia	Lama	Tidak Deal	Diskusi awal kebutuhan	1	Inisiasi
+KJ-051	CUS-013	4/18/2025	Ahmad Fauzi	AM	750000000	SOE	1200000000	Kunjungan Tindak Lanjut	PT Pupuk Indonesia	Lama	Tidak Deal	Presentasi solusi	2	Presentasi
+KJ-052	CUS-013	5/15/2025	Ahmad Fauzi	AM	750000000	SOE	1200000000	Kunjungan Tindak Lanjut	PT Pupuk Indonesia	Lama	Tidak Deal	Negosiasi harga masih berlangsung	3	Penawaran Harga
+KJ-053	CUS-014	4/2/2025	Dian Permata	EAM	1300000000	Government	900000000	Kunjungan Baru	Badan Siber Nasional	Baru	Deal	Perkenalan solusi keamanan	1	Inisiasi
+KJ-054	CUS-014	4/20/2025	Dian Permata	EAM	1300000000	Government	900000000	Kunjungan Tindak Lanjut	Badan Siber Nasional	Baru	Deal	Presentasi solusi keamanan	2	Presentasi
+KJ-055	CUS-014	5/5/2025	Dian Permata	EAM	1300000000	Government	900000000	Kunjungan Tindak Lanjut	Badan Siber Nasional	Baru	Deal	Penawaran biaya implementasi	3	Penawaran Harga
+KJ-056	CUS-014	5/18/2025	Dian Permata	EAM	1300000000	Government	900000000	Kunjungan Tindak Lanjut	Badan Siber Nasional	Baru	Deal	Implementasi sistem keamanan nasional	4	Negosiasi
+KJ-057	CUS-014	6/10/2025	Dian Permata	EAM	1300000000	Government	900000000	Kunjungan Tindak Lanjut	Badan Siber Nasional	Baru	Deal	Pelatihan tim keamanan	5	Paska Deal
+KJ-058	CUS-015	3/30/2025	Rudi Hartono	AM	850000000	Private	600000000	Kunjungan Baru	PT Astra International	Lama	Batal	Pertemuan inisiasi solusi	1	Inisiasi
+KJ-059	CUS-015	4/22/2025	Rudi Hartono	AM	850000000	Private	600000000	Kunjungan Tindak Lanjut	PT Astra International	Lama	Batal	Presentasi detail solusi	2	Presentasi
+KJ-060	CUS-015	5/10/2025	Rudi Hartono	AM	850000000	Private	600000000	Kunjungan Tindak Lanjut	PT Astra International	Lama	Batal	Penyampaian penawaran	3	Penawaran Harga
+KJ-061	CUS-015	5/20/2025	Rudi Hartono	AM	850000000	Private	600000000	Kunjungan Tindak Lanjut	PT Astra International	Lama	Batal	Reorganisasi internal klien	4	Negosiasi
+KJ-062	CUS-016	4/8/2025	Maya Susanti	EAM	1250000000	Regional	800000000	Kunjungan Baru	Pemkot Surabaya	Baru	Deal	Perkenalan konsep smart city	1	Inisiasi
+KJ-063	CUS-016	4/24/2025	Maya Susanti	EAM	1250000000	Regional	800000000	Kunjungan Tindak Lanjut	Pemkot Surabaya	Baru	Deal	Presentasi detail smart city	2	Presentasi
+KJ-064	CUS-016	5/10/2025	Maya Susanti	EAM	1250000000	Regional	800000000	Kunjungan Tindak Lanjut	Pemkot Surabaya	Baru	Deal	Penawaran biaya implementasi	3	Penawaran Harga
+KJ-065	CUS-016	5/23/2025	Maya Susanti	EAM	1250000000	Regional	800000000	Kunjungan Tindak Lanjut	Pemkot Surabaya	Baru	Deal	Smart city solution	4	Negosiasi
+KJ-066	CUS-016	6/15/2025	Maya Susanti	EAM	1250000000	Regional	800000000	Kunjungan Tindak Lanjut	Pemkot Surabaya	Baru	Deal	Kickoff implementasi	5	Paska Deal
+KJ-067	CUS-017	4/5/2025	Agus Darmawan	AM	780000000	Telco	1500000000	Kunjungan Baru	PT Smartfren	Win-Back	Deal	Pertemuan inisiasi kembali	1	Inisiasi
+KJ-068	CUS-017	4/25/2025	Agus Darmawan	AM	780000000	Telco	1500000000	Kunjungan Tindak Lanjut	PT Smartfren	Win-Back	Deal	Presentasi solusi baru	2	Presentasi
+KJ-069	CUS-017	5/10/2025	Agus Darmawan	AM	780000000	Telco	1500000000	Kunjungan Tindak Lanjut	PT Smartfren	Win-Back	Deal	Penawaran harga solusi	3	Penawaran Harga
+KJ-070	CUS-017	5/25/2025	Agus Darmawan	AM	780000000	Telco	1500000000	Kunjungan Tindak Lanjut	PT Smartfren	Win-Back	Deal	Kembali bermitra setelah evaluasi vendor	4	Negosiasi
+KJ-071	CUS-017	6/18/2025	Agus Darmawan	AM	780000000	Telco	1500000000	Kunjungan Tindak Lanjut	PT Smartfren	Win-Back	Deal	Implementasi solusi	5	Paska Deal
+KJ-072	CUS-018	4/12/2025	Dewi Pratiwi	EAM	1350000000	Government	900000000	Kunjungan Baru	Kementerian Pertahanan	Lama	Tidak Deal	Diskusi awal kebutuhan	1	Inisiasi
+KJ-073	CUS-018	5/5/2025	Dewi Pratiwi	EAM	1350000000	Government	900000000	Kunjungan Tindak Lanjut	Kementerian Pertahanan	Lama	Tidak Deal	Presentasi solusi keamanan	2	Presentasi
+KJ-074	CUS-018	5/28/2025	Dewi Pratiwi	EAM	1350000000	Government	900000000	Kunjungan Tindak Lanjut	Kementerian Pertahanan	Lama	Tidak Deal	Proses tender masih berjalan	3	Penawaran Harga
+KJ-075	CUS-019	4/15/2025	Hendra Wijaya	AM	820000000	SOE	1200000000	Kunjungan Baru	PT Garuda Indonesia	Baru	Cancel	Pertemuan inisiasi digital	1	Inisiasi
+KJ-076	CUS-019	5/2/2025	Hendra Wijaya	AM	820000000	SOE	1200000000	Kunjungan Tindak Lanjut	PT Garuda Indonesia	Baru	Cancel	Presentasi digital transformation	2	Presentasi
+KJ-077	CUS-019	5/20/2025	Hendra Wijaya	AM	820000000	SOE	1200000000	Kunjungan Tindak Lanjut	PT Garuda Indonesia	Baru	Cancel	Penawaran biaya transformasi	3	Penawaran Harga
+KJ-078	CUS-019	5/30/2025	Hendra Wijaya	AM	820000000	SOE	1200000000	Kunjungan Tindak Lanjut	PT Garuda Indonesia	Baru	Cancel	Penundaan proyek digital transformation	4	Negosiasi
+KJ-079	CUS-020	4/18/2025	Nina Anggraini	EAM	1280000000	Private	600000000	Kunjungan Baru	PT Tokopedia	Lama	Deal	Pertemuan awal big data	1	Inisiasi
+KJ-080	CUS-020	5/10/2025	Nina Anggraini	EAM	1280000000	Private	600000000	Kunjungan Tindak Lanjut	PT Tokopedia	Lama	Deal	Presentasi solusi analytics	2	Presentasi
+KJ-081	CUS-020	5/25/2025	Nina Anggraini	EAM	1280000000	Private	600000000	Kunjungan Tindak Lanjut	PT Tokopedia	Lama	Deal	Penawaran paket big data	3	Penawaran Harga
+KJ-082	CUS-020	6/2/2025	Nina Anggraini	EAM	1280000000	Private	600000000	Kunjungan Tindak Lanjut	PT Tokopedia	Lama	Deal	Solusi big data analytics	4	Negosiasi
+KJ-083	CUS-020	6/24/2025	Nina Anggraini	EAM	1280000000	Private	600000000	Kunjungan Tindak Lanjut	PT Tokopedia	Lama	Deal	Implementasi platform analytics	5	Paska Deal
+KJ-084	CUS-021	4/10/2025	Budi Santoso	AM	800000000	Regional	800000000	Kunjungan Baru	Pemprov Bali	Win-Back	Tidak Deal	Pertemuan inisiasi kembali	1	Inisiasi
+KJ-085	CUS-021	4/27/2025	Budi Santoso	AM	800000000	Regional	800000000	Kunjungan Tindak Lanjut	Pemprov Bali	Win-Back	Tidak Deal	Presentasi solusi baru	2	Presentasi
+KJ-086	CUS-021	5/15/2025	Budi Santoso	AM	800000000	Regional	800000000	Kunjungan Tindak Lanjut	Pemprov Bali	Win-Back	Tidak Deal	Penawaran biaya solusi	3	Penawaran Harga
+KJ-087	CUS-021	6/5/2025	Budi Santoso	AM	800000000	Regional	800000000	Kunjungan Tindak Lanjut	Pemprov Bali	Win-Back	Tidak Deal	Masih membandingkan dengan kompetitor	4	Negosiasi
+KJ-088	CUS-022	4/20/2025	Siti Rahayu	EAM	1200000000	Telco	1500000000	Kunjungan Baru	PT Telkomsel	Baru	Deal	Perkenalan solusi AI	1	Inisiasi
+KJ-089	CUS-022	5/8/2025	Siti Rahayu	EAM	1200000000	Telco	1500000000	Kunjungan Tindak Lanjut	PT Telkomsel	Baru	Deal	Presentasi AI customer service	2	Presentasi
+KJ-090	CUS-022	5/25/2025	Siti Rahayu	EAM	1200000000	Telco	1500000000	Kunjungan Tindak Lanjut	PT Telkomsel	Baru	Deal	Penawaran harga implementasi	3	Penawaran Harga
+KJ-091	CUS-022	6/8/2025	Siti Rahayu	EAM	1200000000	Telco	1500000000	Kunjungan Tindak Lanjut	PT Telkomsel	Baru	Deal	Implementasi AI untuk customer service	4	Negosiasi
+KJ-092	CUS-022	6/30/2025	Siti Rahayu	EAM	1200000000	Telco	1500000000	Kunjungan Tindak Lanjut	PT Telkomsel	Baru	Deal	Pemantauan implementasi	5	Paska Deal
+KJ-093	CUS-023	3/25/2025	Ahmad Fauzi	AM	750000000	Government	900000000	Kunjungan Baru	Dirjen Pajak	Lama	Deal	Pertemuan awal upgrade	1	Inisiasi
+KJ-094	CUS-023	4/15/2025	Ahmad Fauzi	AM	750000000	Government	900000000	Kunjungan Tindak Lanjut	Dirjen Pajak	Lama	Deal	Presentasi rencana upgrade	2	Presentasi
+KJ-095	CUS-023	5/2/2025	Ahmad Fauzi	AM	750000000	Government	900000000	Kunjungan Tindak Lanjut	Dirjen Pajak	Lama	Deal	Penawaran biaya upgrade	3	Penawaran Harga
+KJ-096	CUS-023	5/20/2025	Ahmad Fauzi	AM	750000000	Government	900000000	Kunjungan Tindak Lanjut	Dirjen Pajak	Lama	Deal	Negosiasi final biaya	4	Negosiasi
+KJ-097	CUS-023	6/10/2025	Ahmad Fauzi	AM	750000000	Government	900000000	Kunjungan Tindak Lanjut	Dirjen Pajak	Lama	Deal	Upgrade sistem perpajakan online	5	Paska Deal
+KJ-098	CUS-024	4/2/2025	Dian Permata	EAM	1300000000	Private	600000000	Kunjungan Baru	PT Sinarmas	Win-Back	Batal	Pertemuan inisiasi kembali	1	Inisiasi
+KJ-099	CUS-024	4/25/2025	Dian Permata	EAM	1300000000	Private	600000000	Kunjungan Tindak Lanjut	PT Sinarmas	Win-Back	Batal	Presentasi solusi baru	2	Presentasi
+KJ-100	CUS-024	5/18/2025	Dian Permata	EAM	1300000000	Private	600000000	Kunjungan Tindak Lanjut	PT Sinarmas	Win-Back	Batal	Penawaran implementasi	3	Penawaran Harga
+KJ-101	CUS-024	6/13/2025	Dian Permata	EAM	1300000000	Private	600000000	Kunjungan Tindak Lanjut	PT Sinarmas	Win-Back	Batal	Perubahan prioritas anggaran	4	Negosiasi
+KJ-102	CUS-025	3/28/2025	Rudi Hartono	AM	850000000	SOE	1200000000	Kunjungan Baru	PT Jasa Marga	Baru	Deal	Perkenalan solusi tol digital	1	Inisiasi
+KJ-103	CUS-025	4/20/2025	Rudi Hartono	AM	850000000	SOE	1200000000	Kunjungan Tindak Lanjut	PT Jasa Marga	Baru	Deal	Presentasi manajemen tol	2	Presentasi
+KJ-104	CUS-025	5/8/2025	Rudi Hartono	AM	850000000	SOE	1200000000	Kunjungan Tindak Lanjut	PT Jasa Marga	Baru	Deal	Penawaran harga sistem	3	Penawaran Harga
+KJ-105	CUS-025	5/28/2025	Rudi Hartono	AM	850000000	SOE	1200000000	Kunjungan Tindak Lanjut	PT Jasa Marga	Baru	Deal	Negosiasi akhir kontrak	4	Negosiasi
+KJ-106	CUS-025	6/15/2025	Rudi Hartono	AM	850000000	SOE	1200000000	Kunjungan Tindak Lanjut	PT Jasa Marga	Baru	Deal	Solusi manajemen tol digital	5	Paska Deal
+KJ-107	CUS-026	3/30/2025	Maya Susanti	EAM	1250000000	Telco	1500000000	Kunjungan Baru	PT Bakrie Telecom	Lama	Tidak Deal	Pertemuan awal evaluasi	1	Inisiasi
+KJ-108	CUS-026	4/25/2025	Maya Susanti	EAM	1250000000	Telco	1500000000	Kunjungan Tindak Lanjut	PT Bakrie Telecom	Lama	Tidak Deal	Presentasi solusi baru	2	Presentasi
+KJ-109	CUS-026	5/15/2025	Maya Susanti	EAM	1250000000	Telco	1500000000	Kunjungan Tindak Lanjut	PT Bakrie Telecom	Lama	Tidak Deal	Penawaran harga solusi	3	Penawaran Harga
+KJ-110	CUS-026	6/18/2025	Maya Susanti	EAM	1250000000	Telco	1500000000	Kunjungan Tindak Lanjut	PT Bakrie Telecom	Lama	Tidak Deal	Masih dalam proses evaluasi teknis	4	Negosiasi
+KJ-111	CUS-027	4/5/2025	Agus Darmawan	AM	780000000	Private	600000000	Kunjungan Baru	PT Kalbe Farma	Win-Back	Deal	Pertemuan inisiasi kembali	1	Inisiasi
+KJ-112	CUS-027	4/28/2025	Agus Darmawan	AM	780000000	Private	600000000	Kunjungan Tindak Lanjut	PT Kalbe Farma	Win-Back	Deal	Presentasi supply chain	2	Presentasi
+KJ-113	CUS-027	5/15/2025	Agus Darmawan	AM	780000000	Private	600000000	Kunjungan Tindak Lanjut	PT Kalbe Farma	Win-Back	Deal	Penawaran sistem SCM	3	Penawaran Harga
+KJ-114	CUS-027	6/5/2025	Agus Darmawan	AM	780000000	Private	600000000	Kunjungan Tindak Lanjut	PT Kalbe Farma	Win-Back	Deal	Negosiasi akhir kontrak	4	Negosiasi
+KJ-115	CUS-027	6/20/2025	Agus Darmawan	AM	780000000	Private	600000000	Kunjungan Tindak Lanjut	PT Kalbe Farma	Win-Back	Deal	Sistem supply chain management baru	5	Paska Deal
+KJ-116	CUS-028	4/8/2025	Dewi Pratiwi	EAM	1350000000	Regional	800000000	Kunjungan Baru	Pemda Kalimantan Timur	Baru	Cancel	Pertemuan inisiasi proyek	1	Inisiasi
+KJ-117	CUS-028	4/30/2025	Dewi Pratiwi	EAM	1350000000	Regional	800000000	Kunjungan Tindak Lanjut	Pemda Kalimantan Timur	Baru	Cancel	Presentasi solusi daerah	2	Presentasi
+KJ-118	CUS-028	5/20/2025	Dewi Pratiwi	EAM	1350000000	Regional	800000000	Kunjungan Tindak Lanjut	Pemda Kalimantan Timur	Baru	Cancel	Penawaran biaya implementasi	3	Penawaran Harga
+KJ-119	CUS-028	6/23/2025	Dewi Pratiwi	EAM	1350000000	Regional	800000000	Kunjungan Tindak Lanjut	Pemda Kalimantan Timur	Baru	Cancel	Anggaran dialokasikan untuk proyek lain	4	Negosiasi
+KJ-120	CUS-029	3/20/2025	Hendra Wijaya	AM	820000000	Government	900000000	Kunjungan Baru	Kementerian Kesehatan	Lama	Deal	Pertemuan awal telemedicine	1	Inisiasi
+KJ-121	CUS-029	4/12/2025	Hendra Wijaya	AM	820000000	Government	900000000	Kunjungan Tindak Lanjut	Kementerian Kesehatan	Lama	Deal	Presentasi sistem telemedicine	2	Presentasi
+KJ-122	CUS-029	5/5/2025	Hendra Wijaya	AM	820000000	Government	900000000	Kunjungan Tindak Lanjut	Kementerian Kesehatan	Lama	Deal	Penawaran biaya sistem	3	Penawaran Harga
+KJ-123	CUS-029	6/2/2025	Hendra Wijaya	AM	820000000	Government	900000000	Kunjungan Tindak Lanjut	Kementerian Kesehatan	Lama	Deal	Negosiasi final kontrak	4	Negosiasi
+KJ-124	CUS-029	6/25/2025	Hendra Wijaya	AM	820000000	Government	900000000	Kunjungan Tindak Lanjut	Kementerian Kesehatan	Lama	Deal	Implementasi sistem telemedicine nasional	5	Paska Deal
+KJ-125	CUS-030	4/10/2025	Nina Anggraini	EAM	1280000000	SOE	1200000000	Kunjungan Baru	PT Kereta Api Indonesia	Baru	Deal	Perkenalan digitalisasi sistem	1	Inisiasi
+KJ-126	CUS-030	5/2/2025	Nina Anggraini	EAM	1280000000	SOE	1200000000	Kunjungan Tindak Lanjut	PT Kereta Api Indonesia	Baru	Deal	Presentasi sistem ticketing	2	Presentasi
+KJ-127	CUS-030	5/22/2025	Nina Anggraini	EAM	1280000000	SOE	1200000000	Kunjungan Tindak Lanjut	PT Kereta Api Indonesia	Baru	Deal	Penawaran biaya digitalisasi	3	Penawaran Harga
+KJ-128	CUS-030	6/10/2025	Nina Anggraini	EAM	1280000000	SOE	1200000000	Kunjungan Tindak Lanjut	PT Kereta Api Indonesia	Baru	Deal	Negosiasi akhir implementasi	4	Negosiasi
+KJ-129	CUS-030	6/28/2025	Nina Anggraini	EAM	1280000000	SOE	1200000000	Kunjungan Tindak Lanjut	PT Kereta Api Indonesia	Baru	Deal	Digitalisasi sistem ticketing dan tracking	5	Paska Deal
+KJ-130	CUS-031	3/25/2025	Budi Santoso	AM	800000000	SOE	1200000000	Kunjungan Baru	PT Bank Mandiri	Lama	Deal	Pertemuan awal anti-fraud	1	Inisiasi
+KJ-131	CUS-031	4/16/2025	Budi Santoso	AM	800000000	SOE	1200000000	Kunjungan Tindak Lanjut	PT Bank Mandiri	Lama	Deal	Implementasi sistem anti-fraud	2	Presentasi
+KJ-132	CUS-031	5/5/2025	Budi Santoso	AM	800000000	SOE	1200000000	Kunjungan Tindak Lanjut	PT Bank Mandiri	Lama	Deal	Penawaran biaya sistem	3	Penawaran Harga
+KJ-133	CUS-031	5/28/2025	Budi Santoso	AM	800000000	SOE	1200000000	Kunjungan Tindak Lanjut	PT Bank Mandiri	Lama	Deal	Finalisasi kontrak anti-fraud	4	Negosiasi
+KJ-134	CUS-031	6/15/2025	Budi Santoso	AM	800000000	SOE	1200000000	Kunjungan Tindak Lanjut	PT Bank Mandiri	Lama	Deal	Implementasi dan monitoring	5	Paska Deal
+KJ-135	CUS-032	3/30/2025	Siti Rahayu	EAM	1200000000	Government	900000000	Kunjungan Baru	Kementerian PUPR	Baru	Tidak Deal	Pertemuan awal proyek	1	Inisiasi
+KJ-136	CUS-032	4/19/2025	Siti Rahayu	EAM	1200000000	Government	900000000	Kunjungan Tindak Lanjut	Kementerian PUPR	Baru	Tidak Deal	Perlu revisi proposal teknis	2	Presentasi
+KJ-137	CUS-032	5/10/2025	Siti Rahayu	EAM	1200000000	Government	900000000	Kunjungan Tindak Lanjut	Kementerian PUPR	Baru	Tidak Deal	Penawaran biaya revisi	3	Penawaran Harga
