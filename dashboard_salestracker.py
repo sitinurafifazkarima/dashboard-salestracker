@@ -500,61 +500,6 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42, test_
 model = LogisticRegression(max_iter=1000)
 model.fit(X_train, y_train)
 
-# --- Analisis Prediktif Interaktif ---
-st.subheader("🔮 Analisis Prediktif Interaktif")
-st.write("Pilih fitur di bawah untuk melihat prediksi peluang deal dan rekomendasi strategi follow-up.")
-
-# Ambil opsi unik dari data
-opsi_segmen = df['Segmen'].dropna().unique().tolist()
-opsi_status_cust = df['Status_Customer'].dropna().unique().tolist()
-opsi_progress = df['Progress'].dropna().unique().tolist()
-opsi_jenis_kunj = df['Jenis_Kunjungan'].dropna().unique().tolist()
-opsi_level_sales = df['Level_Sales'].dropna().unique().tolist()
-
-colf1, colf2 = st.columns(2)
-with colf1:
-    segmen_input = st.selectbox('Pilih Segmen', opsi_segmen)
-    status_cust_input = st.selectbox('Pilih Status Customer', opsi_status_cust)
-    progress_input = st.selectbox('Pilih Tahapan/Progress', opsi_progress)
-with colf2:
-    jenis_kunj_input = st.selectbox('Pilih Jenis Kunjungan', opsi_jenis_kunj)
-    level_sales_input = st.selectbox('Pilih Level Sales', opsi_level_sales)
-
-# Buat DataFrame 1 baris dari input user
-input_dict = {
-    'Progress': progress_input,
-    'Segmen': segmen_input,
-    'Status_Customer': status_cust_input,
-    'Jenis_Kunjungan': jenis_kunj_input,
-    'Level_Sales': level_sales_input
-}
-input_df = pd.DataFrame([input_dict])
-input_X = pd.get_dummies(input_df, drop_first=True)
-input_X = input_X.reindex(columns=X.columns, fill_value=0)
-
-# Prediksi probabilitas deal
-prob_deal = model.predict_proba(input_X)[0, 1]
-
-# Rekomendasi strategi
-def strategi(progress, prob):
-    if prob >= 0.8:
-        return "Dorong ke tahap akhir kontrak"
-    elif prob >= 0.6:
-        if 'Negosiasi' in progress:
-            return "Follow-up intensif minggu ini"
-        elif 'Presentasi' in progress:
-            return "Lanjut ke Penawaran Harga"
-        else:
-            return "Percepat follow-up"
-    elif prob >= 0.4:
-        return "Evaluasi Ulang"
-    else:
-        return "Pertimbangkan drop atau ubah pendekatan"
-
-rekomendasi = strategi(progress_input, prob_deal)
-
-st.markdown(f"**Prediksi Peluang Deal:** <span style='color:#00BFFF;font-size:22px'><b>{prob_deal*100:.1f}%</b></span>", unsafe_allow_html=True)
-st.markdown(f"**Rekomendasi Strategi:** <span style='color:#32CD32;font-size:18px'><b>{rekomendasi}</b></span>", unsafe_allow_html=True)
 
 # --- Analisis batch customer tetap ditampilkan di bawah ---
 # Ambil kunjungan terakhir masing-masing customer
@@ -565,9 +510,7 @@ X_pred = pd.get_dummies(latest_visits[features], drop_first=True)
 X_pred = X_pred.reindex(columns=X.columns, fill_value=0)
 latest_visits['Prob_Deal'] = model.predict_proba(X_pred)[:, 1]
 
-latest_visits['Rekomendasi_Strategi'] = latest_visits.apply(
-    lambda row: strategi(row['Progress'], row['Prob_Deal']), axis=1
-)
+
 
 # Format hasil
 output = latest_visits[['Nama_Customer', 'Nama_Sales', 'Progress', 'Segmen', 'Kunjungan_Ke', 'Prob_Deal', 'Rekomendasi_Strategi']]
