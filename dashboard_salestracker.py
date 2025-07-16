@@ -3,8 +3,14 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
-st.set_page_config(layout="wide")
-st.title("📊 Dashboard Analisis Sales Tracker")
+
+st.set_page_config(page_title="Sales Tracker Dashboard", layout="wide", page_icon="📊")
+
+# Header dengan deskripsi singkat
+st.markdown("""
+<h1 style='color:#00BFFF; margin-bottom:0;'>📊 Dashboard Analisis Sales Tracker</h1>
+<p style='color:#b0b0b0; font-size:16px; margin-top:0;'>Pantau performa sales, konversi, dan insight strategi secara real-time.</p>
+""", unsafe_allow_html=True)
 
 # Load data
 @st.cache_data
@@ -14,50 +20,59 @@ def load_data():
 
 df = load_data()
 
-# Tampilkan data awal jika diminta
-if st.checkbox("Tampilkan data mentah"):
-    st.write(df.head())
+# KPI Cards (Highlight Metrics)
+total_kunjungan = df['ID_Kunjungan'].nunique()
+total_deal = df[df['Status_Kontrak'] == 'Deal']['ID_Kunjungan'].nunique()
+total_customer = df['ID_Customer'].nunique()
+avg_konversi = (total_deal / total_kunjungan * 100) if total_kunjungan else 0
+
+colk1, colk2, colk3, colk4 = st.columns(4)
+colk1.metric("Total Kunjungan", f"{total_kunjungan}", help="Jumlah seluruh kunjungan sales")
+colk2.metric("Total Deal", f"{total_deal}", help="Jumlah deal yang berhasil")
+colk3.metric("Total Customer", f"{total_customer}", help="Jumlah customer unik")
+colk4.metric("Rata-rata Konversi", f"{avg_konversi:.1f}%", help="Persentase deal dari total kunjungan")
+
+with st.expander("Tampilkan data mentah (raw data)"):
+    st.dataframe(df.head(20))
 # --------------------------------------------
 # --------------------------------------------
-# Fungsi pie chart ringkas dan transparan
+
+# Pie chart dengan insight singkat
 def draw_pie(data, title):
-    fig, ax = plt.subplots(figsize=(3.2, 3.2))  # Lebih kecil agar muat 4
+    fig, ax = plt.subplots(figsize=(3.2, 3.2))
     fig.patch.set_alpha(0)
     ax.set_facecolor('none')
-
     explode = [0.05 if val == data.max() else 0 for val in data]
-
     wedges, texts, autotexts = ax.pie(
         data,
         labels=data.index,
         autopct='%1.1f%%',
         startangle=140,
-        colors=plt.cm.Set3.colors,
+        colors=plt.cm.Pastel1.colors,
         explode=explode,
-        shadow=True,
-        textprops={'fontsize': 9, 'color': 'white'}
+        shadow=False,
+        textprops={'fontsize': 9, 'color': '#222'}
     )
-
-    plt.setp(autotexts, color='white')
-    plt.setp(texts, color='white')
-    plt.title(title, fontsize=10, color='white')
-
+    plt.setp(autotexts, color='#222')
+    plt.setp(texts, color='#222')
+    plt.title(title, fontsize=10, color='#00BFFF')
     return fig
 
-# Tampilkan ke Streamlit dalam 4 kolom sejajar
-col1, col2, col3, col4 = st.columns(4)
 
+# Pie chart + insight
+col1, col2, col3, col4 = st.columns(4)
 with col1:
     st.pyplot(draw_pie(df['Status_Kontrak'].value_counts(), "Status Kontrak"))
-
+    st.caption(f"<b>Deal terbanyak:</b> {df['Status_Kontrak'].value_counts().idxmax()}", unsafe_allow_html=True)
 with col2:
     st.pyplot(draw_pie(df['Segmen'].value_counts(), "Segmen"))
-
+    st.caption(f"<b>Segmen dominan:</b> {df['Segmen'].value_counts().idxmax()}", unsafe_allow_html=True)
 with col3:
     st.pyplot(draw_pie(df['Level_Sales'].value_counts(), "Level Sales"))
-
+    st.caption(f"<b>Level terbanyak:</b> {df['Level_Sales'].value_counts().idxmax()}", unsafe_allow_html=True)
 with col4:
     st.pyplot(draw_pie(df['Status_Customer'].value_counts(), "Status Customer"))
+    st.caption(f"<b>Status dominan:</b> {df['Status_Customer'].value_counts().idxmax()}", unsafe_allow_html=True)
 
 st.markdown("---")
 st.header("📈 Kinerja Sales")
@@ -72,53 +87,48 @@ kinerja_sales.columns = ['Total_Kunjungan', 'Jumlah_Deal']
 kinerja_sales['Tingkat_Konversi (%)'] = (kinerja_sales['Jumlah_Deal'] / kinerja_sales['Total_Kunjungan'] * 100).round(2)
 kinerja_sales = kinerja_sales.sort_values('Tingkat_Konversi (%)', ascending=False)
 
-# Buat 2 kolom sejajar
-col1, col2 = st.columns(2)
 
-# ---------------------
-# Kolom 1: Kunjungan
-# ---------------------
+# Dua kolom: Kunjungan & Konversi
+col1, col2 = st.columns(2)
 with col1:
     st.subheader("👥 Total Kunjungan per Sales")
     fig_kunjungan, ax = plt.subplots(figsize=(5.5, 3))
-    bars = ax.bar(kunjungan_sales.index, kunjungan_sales.values, color='skyblue', edgecolor='black')
-    ax.set_ylabel("Jumlah", fontsize=8, color='white')
-    ax.set_xlabel("Nama Sales", fontsize=8, color='white')
-    ax.set_title("Total Kunjungan", fontsize=10, color='white')
-    ax.tick_params(axis='x', labelrotation=45, labelsize=7, colors='white')
-    ax.tick_params(axis='y', labelsize=7, colors='white')
+    bars = ax.bar(kunjungan_sales.index, kunjungan_sales.values, color='#00BFFF', edgecolor='black')
+    ax.set_ylabel("Jumlah", fontsize=8, color='#222')
+    ax.set_xlabel("Nama Sales", fontsize=8, color='#222')
+    ax.set_title("Total Kunjungan", fontsize=10, color='#00BFFF')
+    ax.tick_params(axis='x', labelrotation=45, labelsize=7, colors='#222')
+    ax.tick_params(axis='y', labelsize=7, colors='#222')
     ax.set_facecolor('none')
     fig_kunjungan.patch.set_alpha(0)
     plt.tight_layout(pad=0.8)
+    for bar in bars:
+        yval = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2, yval + 0.5, int(yval), ha='center', fontsize=7, color='#222')
     st.pyplot(fig_kunjungan)
-
-# ---------------------
-# Kolom 2: Konversi
-# ---------------------
+    st.caption(f"<b>Sales teraktif:</b> {kunjungan_sales.idxmax()} ({kunjungan_sales.max()} kunjungan)", unsafe_allow_html=True)
 with col2:
     st.subheader("📊 Tingkat Konversi (Deal) per Sales")
     fig_konversi, ax = plt.subplots(figsize=(5.5, 3))
     bars = ax.barh(kinerja_sales.index, kinerja_sales['Tingkat_Konversi (%)'],
-                   color='mediumseagreen', edgecolor='black')
-    ax.set_xlabel("Tingkat Konversi (%)", fontsize=8, color='white')
-    ax.set_title("Tingkat Konversi", fontsize=10, color='white')
-    ax.tick_params(axis='x', labelsize=7, colors='white')
-    ax.tick_params(axis='y', labelsize=7, colors='white')
+                   color='#32CD32', edgecolor='black')
+    ax.set_xlabel("Tingkat Konversi (%)", fontsize=8, color='#222')
+    ax.set_title("Tingkat Konversi", fontsize=10, color='#32CD32')
+    ax.tick_params(axis='x', labelsize=7, colors='#222')
+    ax.tick_params(axis='y', labelsize=7, colors='#222')
     ax.set_facecolor('none')
     fig_konversi.patch.set_alpha(0)
     plt.tight_layout(pad=0.8)
+    for i, val in enumerate(kinerja_sales['Tingkat_Konversi (%)']):
+        ax.text(val + 0.5, i, f"{val}%", va='center', fontsize=7, color='#222')
     st.pyplot(fig_konversi)
+    st.caption(f"<b>Konversi tertinggi:</b> {kinerja_sales.index[0]} ({kinerja_sales['Tingkat_Konversi (%)'].iloc[0]}%)", unsafe_allow_html=True)
 
-# ---------------------
+
 # Tabel Detail
-# ---------------------
 with st.expander("📋 Lihat detail kinerja sales"):
-    styled_table = kinerja_sales.reset_index().style.set_properties(**{
-        'background-color': '#0e1117',
-        'color': 'white',
-        'border-color': 'white'
-    })
-    st.dataframe(styled_table)
+    st.dataframe(kinerja_sales.reset_index(), use_container_width=True)
+
 
 
 st.markdown("---")
@@ -127,25 +137,19 @@ st.header("🎯 Perbandingan Target Sales")
 # Hitung rata-rata target sales per Level dan Status_Kontrak
 target_avg = df.groupby(['Status_Kontrak', 'Level_Sales'])['Target_Sales'].mean().unstack().fillna(0)
 
-# Plot bar chart: status di sumbu X, Level_Sales sebagai batang
 st.subheader("📊 Rata-rata Target Sales per Status Kontrak dan Level Sales")
-
-fig, ax = plt.subplots(figsize=(6.2, 3.2))  # Lebih kecil dan ramping
-
-colors = ['skyblue', 'mediumseagreen', 'salmon', 'mediumpurple', 'gray']
+fig, ax = plt.subplots(figsize=(6.2, 3.2))
+colors = ['#00BFFF', '#32CD32', '#FF7F50', '#9370DB', '#A9A9A9']
 target_avg.plot(kind='bar', ax=ax, edgecolor='black', color=colors, width=0.65)
-
-ax.set_title("Rata-rata Target Sales per Status Kontrak", fontsize=10, color='white')
-ax.set_xlabel("Status Kontrak", fontsize=8, color='white')
-ax.set_ylabel("Rata-rata Target (Rp)", fontsize=8, color='white')
-ax.tick_params(axis='x', labelrotation=0, labelsize=7, colors='white')
-ax.tick_params(axis='y', labelsize=7, colors='white')
+ax.set_title("Rata-rata Target Sales per Status Kontrak", fontsize=10, color='#00BFFF')
+ax.set_xlabel("Status Kontrak", fontsize=8, color='#222')
+ax.set_ylabel("Rata-rata Target (Rp)", fontsize=8, color='#222')
+ax.tick_params(axis='x', labelrotation=0, labelsize=7, colors='#222')
+ax.tick_params(axis='y', labelsize=7, colors='#222')
 ax.set_facecolor('none')
 fig.patch.set_alpha(0)
-
-plt.legend(title='Level Sales', fontsize=7, title_fontsize=8, labelcolor='white')
+plt.legend(title='Level Sales', fontsize=7, title_fontsize=8, labelcolor='#222')
 plt.tight_layout(pad=0.5)
-
 st.pyplot(fig)
 
 
@@ -153,9 +157,9 @@ st.pyplot(fig)
 df['Tanggal'] = pd.to_datetime(df['Tanggal'])
 df_last = df.sort_values(by='Tanggal').groupby('ID_Customer').last().reset_index()
 
+
 # Hitung jumlah customer per tahap progres terakhir
 tahapan_summary = df_last['Progress'].value_counts().rename_axis('Tahap_Progres').reset_index(name='Jumlah_Customer')
-
 # Urutkan tahapan sesuai alur funnel
 tahapan_order = ['Inisiasi', 'Presentasi', 'Penawaran Harga', 'Negosiasi', 'Paska Deal']
 tahapan_summary['Tahap_Progres'] = pd.Categorical(tahapan_summary['Tahap_Progres'], categories=tahapan_order, ordered=True)
@@ -166,25 +170,23 @@ st.header("🔁 Funnel Progres Kunjungan")
 
 st.subheader("📊 Jumlah Customer di Tiap Tahapan Progres (Terakhir)")
 
-fig, ax = plt.subplots(figsize=(6, 3.2))  # Kecil dan ramping
 
+st.pyplot(fig)
+
+fig, ax = plt.subplots(figsize=(6, 3.2))
 bars = ax.bar(tahapan_summary['Tahap_Progres'], tahapan_summary['Jumlah_Customer'],
-              color='steelblue', edgecolor='black')
-
-# Tambahkan angka di atas batang
+              color=['#FFD700', '#00BFFF', '#32CD32', '#FF7F50', '#9370DB'], edgecolor='black')
 for bar in bars:
     yval = bar.get_height()
-    ax.text(bar.get_x() + bar.get_width()/2, yval + 1, int(yval), ha='center', fontsize=8, color='white')
-
-ax.set_title("Distribusi Tahapan Progres Kunjungan Terakhir", fontsize=10, color='white')
-ax.set_xlabel("Tahapan Progres", fontsize=8, color='white')
-ax.set_ylabel("Jumlah Customer", fontsize=8, color='white')
-ax.tick_params(axis='x', labelsize=8, colors='white')
-ax.tick_params(axis='y', labelsize=8, colors='white')
+    ax.text(bar.get_x() + bar.get_width()/2, yval + 1, int(yval), ha='center', fontsize=8, color='#222')
+ax.set_title("Distribusi Tahapan Progres Kunjungan Terakhir", fontsize=10, color='#00BFFF')
+ax.set_xlabel("Tahapan Progres", fontsize=8, color='#222')
+ax.set_ylabel("Jumlah Customer", fontsize=8, color='#222')
+ax.tick_params(axis='x', labelsize=8, colors='#222')
+ax.tick_params(axis='y', labelsize=8, colors='#222')
 ax.set_facecolor('none')
 fig.patch.set_alpha(0)
 plt.tight_layout(pad=0.6)
-
 st.pyplot(fig)
 
 # Konversi per Segmen
@@ -206,56 +208,43 @@ analisis_status['Tingkat_Konversi (%)'] = (analisis_status['Jumlah_Deal'] / anal
 st.markdown("---")
 st.header("🏷️ Konversi Berdasarkan Segmen dan Status Customer")
 
-# Buat dua kolom sejajar
-col1, col2 = st.columns(2)
 
-# ------------------------
-# Kolom 1: Konversi per Segmen
-# ------------------------
+# Dua kolom: Konversi per Segmen & Status Customer
+col1, col2 = st.columns(2)
 with col1:
     st.subheader("📊 Konversi per Segmen")
     fig_segmen, ax = plt.subplots(figsize=(5.5, 3))
     sorted_segmen = analisis_segmen.sort_values('Tingkat_Konversi (%)', ascending=True)
-
     bars = ax.barh(sorted_segmen.index, sorted_segmen['Tingkat_Konversi (%)'],
-                   color='mediumseagreen', edgecolor='black')
-
+                   color='#32CD32', edgecolor='black')
     for i, val in enumerate(sorted_segmen['Tingkat_Konversi (%)']):
-        ax.text(val + 0.5, i, f"{val}%", va='center', fontsize=8, color='white')
-
-    ax.set_xlabel("Tingkat Konversi (%)", fontsize=8, color='white')
-    ax.set_title("Deal Rate per Segmen", fontsize=10, color='white')
-    ax.tick_params(axis='x', labelsize=8, colors='white')
-    ax.tick_params(axis='y', labelsize=8, colors='white')
+        ax.text(val + 0.5, i, f"{val}%", va='center', fontsize=8, color='#222')
+    ax.set_xlabel("Tingkat Konversi (%)", fontsize=8, color='#222')
+    ax.set_title("Deal Rate per Segmen", fontsize=10, color='#32CD32')
+    ax.tick_params(axis='x', labelsize=8, colors='#222')
+    ax.tick_params(axis='y', labelsize=8, colors='#222')
     ax.set_facecolor('none')
     fig_segmen.patch.set_alpha(0)
     plt.tight_layout(pad=0.5)
-
     st.pyplot(fig_segmen)
-
-# ------------------------
-# Kolom 2: Konversi per Status Customer
-# ------------------------
+    st.caption(f"<b>Segmen konversi tertinggi:</b> {sorted_segmen['Tingkat_Konversi (%)'].idxmax()} ({sorted_segmen['Tingkat_Konversi (%)'].max()}%)", unsafe_allow_html=True)
 with col2:
     st.subheader("👥 Konversi per Status Customer")
     fig_status, ax = plt.subplots(figsize=(5.5, 3))
     sorted_status = analisis_status.sort_values('Tingkat_Konversi (%)', ascending=True)
-
     bars = ax.barh(sorted_status.index, sorted_status['Tingkat_Konversi (%)'],
-                   color='steelblue', edgecolor='black')
-
+                   color='#00BFFF', edgecolor='black')
     for i, val in enumerate(sorted_status['Tingkat_Konversi (%)']):
-        ax.text(val + 0.5, i, f"{val}%", va='center', fontsize=8, color='white')
-
-    ax.set_xlabel("Tingkat Konversi (%)", fontsize=8, color='white')
-    ax.set_title("Deal Rate per Status Customer", fontsize=10, color='white')
-    ax.tick_params(axis='x', labelsize=8, colors='white')
-    ax.tick_params(axis='y', labelsize=8, colors='white')
+        ax.text(val + 0.5, i, f"{val}%", va='center', fontsize=8, color='#222')
+    ax.set_xlabel("Tingkat Konversi (%)", fontsize=8, color='#222')
+    ax.set_title("Deal Rate per Status Customer", fontsize=10, color='#00BFFF')
+    ax.tick_params(axis='x', labelsize=8, colors='#222')
+    ax.tick_params(axis='y', labelsize=8, colors='#222')
     ax.set_facecolor('none')
     fig_status.patch.set_alpha(0)
     plt.tight_layout(pad=0.5)
-
     st.pyplot(fig_status)
+    st.caption(f"<b>Status konversi tertinggi:</b> {sorted_status['Tingkat_Konversi (%)'].idxmax()} ({sorted_status['Tingkat_Konversi (%)'].max()}%)", unsafe_allow_html=True)
 
 
 # Pastikan Tanggal sudah dalam datetime
@@ -277,23 +266,22 @@ st.header("📅 Tren Kunjungan & Deal per Bulan")
 
 st.subheader("📈 Jumlah Kunjungan & Deal")
 
-fig_tren, ax = plt.subplots(figsize=(6.2, 3.2))  # Ringkas
 
+
+fig_tren, ax = plt.subplots(figsize=(6.2, 3.2))
 ax.plot(tren_bulanan.index, tren_bulanan['Total_Kunjungan'],
-        marker='o', color='skyblue', label='Total Kunjungan', linewidth=2)
+        marker='o', color='#00BFFF', label='Total Kunjungan', linewidth=2)
 ax.plot(tren_bulanan.index, tren_bulanan['Jumlah_Deal'],
-        marker='s', color='mediumseagreen', label='Jumlah Deal', linewidth=2)
-
-ax.set_title("Tren Kunjungan & Deal per Bulan", fontsize=10, color='white')
-ax.set_xlabel("Bulan", fontsize=8, color='white')
-ax.set_ylabel("Jumlah", fontsize=8, color='white')
-ax.tick_params(axis='x', rotation=45, labelsize=8, colors='white')
-ax.tick_params(axis='y', labelsize=8, colors='white')
+        marker='s', color='#32CD32', label='Jumlah Deal', linewidth=2)
+ax.set_title("Tren Kunjungan & Deal per Bulan", fontsize=10, color='#00BFFF')
+ax.set_xlabel("Bulan", fontsize=8, color='#222')
+ax.set_ylabel("Jumlah", fontsize=8, color='#222')
+ax.tick_params(axis='x', rotation=45, labelsize=8, colors='#222')
+ax.tick_params(axis='y', labelsize=8, colors='#222')
 ax.set_facecolor('none')
 fig_tren.patch.set_alpha(0)
 ax.legend(fontsize=7)
 plt.tight_layout(pad=0.5)
-
 st.pyplot(fig_tren)
 
 from wordcloud import WordCloud
@@ -324,13 +312,13 @@ word_freq = Counter(filtered_words).most_common(100)
 # Buat dictionary untuk WordCloud
 word_freq_dict = dict(word_freq)
 
+
 # Buat WordCloud
 wordcloud = WordCloud(
     width=800,
     height=300,
-    background_color=None,
-    mode='RGBA',
-    colormap='tab20',
+    background_color='white',
+    colormap='cool',
     max_words=100
 ).generate_from_frequencies(word_freq_dict)
 
@@ -340,6 +328,7 @@ ax.imshow(wordcloud, interpolation='bilinear')
 ax.axis('off')
 fig_wc.patch.set_alpha(0)
 st.pyplot(fig_wc)
+st.caption("<b>Insight:</b> Kata yang sering muncul dapat menjadi fokus perbaikan strategi sales.", unsafe_allow_html=True)
 
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
