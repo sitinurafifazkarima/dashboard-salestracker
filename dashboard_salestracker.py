@@ -510,7 +510,9 @@ X_pred = pd.get_dummies(latest_visits[features], drop_first=True)
 X_pred = X_pred.reindex(columns=X.columns, fill_value=0)
 latest_visits['Prob_Deal'] = model.predict_proba(X_pred)[:, 1]
 
-
+latest_visits['Rekomendasi_Strategi'] = latest_visits.apply(
+    lambda row: strategi(row['Progress'], row['Prob_Deal']), axis=1
+)
 
 # Format hasil
 output = latest_visits[['Nama_Customer', 'Nama_Sales', 'Progress', 'Segmen', 'Kunjungan_Ke', 'Prob_Deal', 'Rekomendasi_Strategi']]
