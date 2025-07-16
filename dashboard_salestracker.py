@@ -18,7 +18,44 @@ def load_data():
     df = pd.read_csv('sales_visits_enriched_csv.txt', delimiter='\t')
     return df
 
+
 df = load_data()
+
+# =====================
+# FILTER INTERAKTIF
+# =====================
+with st.sidebar:
+    st.header('🔎 Filter Data')
+    # Periode (Bulan)
+    df['Tanggal'] = pd.to_datetime(df['Tanggal'])
+    bulan_opsi = df['Tanggal'].dt.to_period('M').astype(str).unique().tolist()
+    bulan_opsi.sort()
+    bulan_dipilih = st.multiselect('Pilih Bulan', bulan_opsi, default=bulan_opsi)
+    # Sales
+    sales_opsi = df['Nama_Sales'].dropna().unique().tolist()
+    sales_opsi.sort()
+    sales_dipilih = st.multiselect('Pilih Sales', sales_opsi, default=sales_opsi)
+    # Segmen
+    segmen_opsi = df['Segmen'].dropna().unique().tolist()
+    segmen_opsi.sort()
+    segmen_dipilih = st.multiselect('Pilih Segmen', segmen_opsi, default=segmen_opsi)
+    # Status Kontrak
+    status_opsi = df['Status_Kontrak'].dropna().unique().tolist()
+    status_opsi.sort()
+    status_dipilih = st.multiselect('Pilih Status Kontrak', status_opsi, default=status_opsi)
+    # Status Customer
+    status_cust_opsi = df['Status_Customer'].dropna().unique().tolist()
+    status_cust_opsi.sort()
+    status_cust_dipilih = st.multiselect('Pilih Status Customer', status_cust_opsi, default=status_cust_opsi)
+
+# Terapkan filter ke dataframe utama
+df = df[
+    df['Tanggal'].dt.to_period('M').astype(str).isin(bulan_dipilih)
+    & df['Nama_Sales'].isin(sales_dipilih)
+    & df['Segmen'].isin(segmen_dipilih)
+    & df['Status_Kontrak'].isin(status_dipilih)
+    & df['Status_Customer'].isin(status_cust_dipilih)
+]
 
 # KPI Cards (Highlight Metrics)
 total_kunjungan = df['ID_Kunjungan'].nunique()
