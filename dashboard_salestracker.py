@@ -287,11 +287,15 @@ df_last = df.sort_values(by='Tanggal').groupby('ID_Customer').last().reset_index
 
 
 
-# Hitung jumlah customer unik per tahap funnel (berdasarkan progres terakhirnya tepat di tahap tersebut)
+
+# Hitung jumlah customer unik per tahap funnel (cumulative, filtering minimal tahap)
 tahapan_order = ['Inisiasi', 'Presentasi', 'Penawaran Harga', 'Negosiasi']
+progress_cat = pd.Categorical(df_last['Progress'], categories=tahapan_order, ordered=True)
 tahapan_summary = []
-for tahap in tahapan_order:
-    jumlah = df_last[df_last['Progress'] == tahap]['ID_Customer'].nunique()
+for i, tahap in enumerate(tahapan_order):
+    # Filter customer yang progres terakhirnya minimal di tahap ini
+    mask = progress_cat.codes >= i
+    jumlah = df_last[mask]['ID_Customer'].nunique()
     tahapan_summary.append({'Tahap_Progres': tahap, 'Jumlah_Customer': jumlah})
 tahapan_summary = pd.DataFrame(tahapan_summary)
 
