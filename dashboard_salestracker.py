@@ -237,24 +237,7 @@ leaderboard.columns = ['Nama Sales', 'Jumlah Kunjungan']
 st.dataframe(leaderboard, use_container_width=True)
 st.caption(f"<b>Total sales aktif:</b> {kunjungan_sales.count()} | <b>Rata-rata kunjungan/sales:</b> {kunjungan_sales.mean():.1f}", unsafe_allow_html=True)
 
-# 4. Distribusi Aktivitas Sales per Hari
-st.subheader("📊 Distribusi Aktivitas Sales per Hari")
-aktivitas_per_hari = df['Hari'].value_counts().reindex(hari_order)
-fig_hari, ax = plt.subplots(figsize=(5, 2.5))
-bars = ax.bar(aktivitas_per_hari.index, aktivitas_per_hari.values, color='#9370DB', edgecolor='black')
-for bar in bars:
-    yval = bar.get_height()
-    ax.text(bar.get_x() + bar.get_width()/2, yval + 0.5, int(yval), ha='center', fontsize=8, color='#222')
-ax.set_ylabel("Jumlah Aktivitas", fontsize=8, color='#222')
-ax.set_xlabel("Hari", fontsize=8, color='#222')
-ax.set_title("Distribusi Aktivitas Sales per Hari", fontsize=10, color='#9370DB')
-ax.tick_params(axis='x', labelsize=8, colors='#222')
-ax.tick_params(axis='y', labelsize=8, colors='#222')
-ax.set_facecolor('none')
-fig_hari.patch.set_alpha(0)
-plt.tight_layout(pad=0.5)
-st.pyplot(fig_hari)
-st.caption("<b>Hari paling aktif:</b> {} ({} aktivitas)".format(aktivitas_per_hari.idxmax(), aktivitas_per_hari.max()), unsafe_allow_html=True)
+
 
 
 # Tabel Detail
