@@ -1,3 +1,27 @@
+# Fungsi strategi rekomendasi berdasarkan progress dan probabilitas deal
+def strategi(progress, prob_deal):
+    if prob_deal >= 0.8:
+        if progress == 'Negosiasi':
+            return 'Segera follow-up untuk closing!'
+        elif progress == 'Penawaran Harga':
+            return 'Dorong ke tahap negosiasi, tawarkan benefit tambahan.'
+        elif progress == 'Presentasi':
+            return 'Pastikan kebutuhan customer terjawab, lanjutkan ke penawaran.'
+        else:
+            return 'Bangun hubungan, gali kebutuhan customer.'
+    elif prob_deal >= 0.6:
+        if progress == 'Negosiasi':
+            return 'Perkuat value proposition, atasi keberatan.'
+        elif progress == 'Penawaran Harga':
+            return 'Tawarkan promo atau diskon khusus.'
+        elif progress == 'Presentasi':
+            return 'Tingkatkan engagement, follow-up presentasi.'
+        else:
+            return 'Lakukan pendekatan lebih personal.'
+    elif prob_deal >= 0.4:
+        return 'Identifikasi hambatan, lakukan pendekatan ulang.'
+    else:
+        return 'Evaluasi prospek, fokus ke customer lain.'
 # dashboard_salestracker.py
 import streamlit as st
 import pandas as pd
@@ -510,20 +534,28 @@ X_pred = pd.get_dummies(latest_visits[features], drop_first=True)
 X_pred = X_pred.reindex(columns=X.columns, fill_value=0)
 latest_visits['Prob_Deal'] = model.predict_proba(X_pred)[:, 1]
 
+
+
+# Format hasil
+
+
+# Tambahkan kolom rekomendasi strategi
 latest_visits['Rekomendasi_Strategi'] = latest_visits.apply(
     lambda row: strategi(row['Progress'], row['Prob_Deal']), axis=1
 )
 
-# Format hasil
 output = latest_visits[['Nama_Customer', 'Nama_Sales', 'Progress', 'Segmen', 'Kunjungan_Ke', 'Prob_Deal', 'Rekomendasi_Strategi']]
 output['Probabilitas_Deal'] = (output['Prob_Deal'] * 100).round(0).astype(int).astype(str) + '%'
 output = output.drop(columns='Prob_Deal')
 output.columns = ['Customer', 'Nama_Sales', 'Progress', 'Segmen', 'Kunjungan_Ke', 'Rekomendasi Strategi', 'Probabilitas Deal']
 
+
+
 st.subheader("📋 Rekomendasi Strategi Follow-Up per Customer")
 st.dataframe(output.sort_values('Probabilitas Deal', ascending=False).reset_index(drop=True))
 
-# Tambahkan kolom Segmentasi Prioritas
+
+# Segmentasi prioritas tanpa rekomendasi strategi
 def segment_prioritas(prob):
     if prob >= 0.8:
         return "🔥 Prioritas Tinggi"
@@ -536,8 +568,9 @@ def segment_prioritas(prob):
 
 latest_visits['Segmentasi_Prioritas'] = latest_visits['Prob_Deal'].apply(segment_prioritas)
 
-# Rekomendasi strategi tambahan berdasarkan prioritas
-segmentasi_output = latest_visits[['Nama_Customer', 'Segmen', 'Progress', 'Prob_Deal', 'Segmentasi_Prioritas', 'Rekomendasi_Strategi']]
+
+# Tampilkan juga rekomendasi strategi pada segmentasi prioritas
+segmentasi_output = latest_visits[['Nama_Customer', 'Segmen', 'Progress', 'Segmentasi_Prioritas', 'Rekomendasi_Strategi', 'Prob_Deal']]
 segmentasi_output['Probabilitas_Deal'] = (segmentasi_output['Prob_Deal'] * 100).round(0).astype(int).astype(str) + '%'
 segmentasi_output = segmentasi_output.drop(columns='Prob_Deal')
 segmentasi_output.columns = ['Customer', 'Segmen', 'Progress', 'Segmentasi Prioritas', 'Rekomendasi Strategi', 'Probabilitas Deal']
