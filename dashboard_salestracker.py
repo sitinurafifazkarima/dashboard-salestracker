@@ -125,6 +125,7 @@ kinerja_sales['Tingkat_Konversi (%)'] = (kinerja_sales['Jumlah_Deal'] / kinerja_
 kinerja_sales = kinerja_sales.sort_values('Tingkat_Konversi (%)', ascending=False)
 
 
+
 # Dua kolom: Kunjungan & Konversi
 col1, col2 = st.columns(2)
 with col1:
@@ -160,6 +161,76 @@ with col2:
         ax.text(val + 0.5, i, f"{val}%", va='center', fontsize=7, color='#222')
     st.pyplot(fig_konversi)
     st.caption(f"<b>Konversi tertinggi:</b> {kinerja_sales.index[0]} ({kinerja_sales['Tingkat_Konversi (%)'].iloc[0]}%)", unsafe_allow_html=True)
+
+# =====================
+# Analisis Aktivitas Sales
+# =====================
+st.markdown("---")
+st.header("🚀 Analisis Aktivitas Sales")
+
+# 1. Breakdown Jenis Kunjungan
+st.subheader("🔍 Distribusi Jenis Kunjungan Sales")
+jenis_kunjungan = df['Jenis_Kunjungan'].value_counts()
+fig_jk, ax = plt.subplots(figsize=(4.5, 3))
+bars = ax.bar(jenis_kunjungan.index, jenis_kunjungan.values, color='#FF7F50', edgecolor='black')
+for bar in bars:
+    yval = bar.get_height()
+    ax.text(bar.get_x() + bar.get_width()/2, yval + 0.5, int(yval), ha='center', fontsize=8, color='#222')
+ax.set_ylabel("Jumlah", fontsize=8, color='#222')
+ax.set_xlabel("Jenis Kunjungan", fontsize=8, color='#222')
+ax.set_title("Breakdown Jenis Kunjungan", fontsize=10, color='#FF7F50')
+ax.tick_params(axis='x', labelrotation=15, labelsize=8, colors='#222')
+ax.tick_params(axis='y', labelsize=8, colors='#222')
+ax.set_facecolor('none')
+fig_jk.patch.set_alpha(0)
+plt.tight_layout(pad=0.5)
+st.pyplot(fig_jk)
+st.caption(f"<b>Jenis kunjungan terbanyak:</b> {jenis_kunjungan.idxmax()} ({jenis_kunjungan.max()} aktivitas)", unsafe_allow_html=True)
+
+# 2. Aktivitas Sales per Hari (Heatmap)
+st.subheader("📅 Heatmap Aktivitas Sales per Hari")
+df['Tanggal'] = pd.to_datetime(df['Tanggal'])
+df['Hari'] = df['Tanggal'].dt.day_name()
+df['Jam'] = df['Tanggal'].dt.hour
+aktivitas_hari_jam = df.groupby(['Hari', 'Jam'])['ID_Kunjungan'].count().unstack(fill_value=0)
+import seaborn as sns
+import numpy as np
+hari_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+aktivitas_hari_jam = aktivitas_hari_jam.reindex(hari_order)
+fig_hm, ax = plt.subplots(figsize=(8, 3.5))
+sns.heatmap(aktivitas_hari_jam, cmap='YlGnBu', ax=ax, linewidths=0.5, linecolor='#eee', cbar_kws={'label': 'Jumlah Aktivitas'})
+ax.set_xlabel('Jam (24)', fontsize=8)
+ax.set_ylabel('Hari', fontsize=8)
+ax.set_title('Heatmap Aktivitas Sales per Hari & Jam', fontsize=10, color='#00BFFF')
+plt.tight_layout(pad=0.5)
+st.pyplot(fig_hm)
+st.caption("<b>Insight:</b> Lihat waktu-waktu puncak aktivitas sales untuk optimasi jadwal kunjungan.", unsafe_allow_html=True)
+
+# 3. Leaderboard Sales Paling Aktif
+st.subheader("🏆 Leaderboard Sales Paling Aktif (Top 10)")
+leaderboard = kunjungan_sales.head(10).reset_index()
+leaderboard.columns = ['Nama Sales', 'Jumlah Kunjungan']
+st.dataframe(leaderboard, use_container_width=True)
+st.caption(f"<b>Total sales aktif:</b> {kunjungan_sales.count()} | <b>Rata-rata kunjungan/sales:</b> {kunjungan_sales.mean():.1f}", unsafe_allow_html=True)
+
+# 4. Distribusi Aktivitas Sales per Hari
+st.subheader("📊 Distribusi Aktivitas Sales per Hari")
+aktivitas_per_hari = df['Hari'].value_counts().reindex(hari_order)
+fig_hari, ax = plt.subplots(figsize=(5, 2.5))
+bars = ax.bar(aktivitas_per_hari.index, aktivitas_per_hari.values, color='#9370DB', edgecolor='black')
+for bar in bars:
+    yval = bar.get_height()
+    ax.text(bar.get_x() + bar.get_width()/2, yval + 0.5, int(yval), ha='center', fontsize=8, color='#222')
+ax.set_ylabel("Jumlah Aktivitas", fontsize=8, color='#222')
+ax.set_xlabel("Hari", fontsize=8, color='#222')
+ax.set_title("Distribusi Aktivitas Sales per Hari", fontsize=10, color='#9370DB')
+ax.tick_params(axis='x', labelsize=8, colors='#222')
+ax.tick_params(axis='y', labelsize=8, colors='#222')
+ax.set_facecolor('none')
+fig_hari.patch.set_alpha(0)
+plt.tight_layout(pad=0.5)
+st.pyplot(fig_hari)
+st.caption("<b>Hari paling aktif:</b> {} ({} aktivitas)".format(aktivitas_per_hari.idxmax(), aktivitas_per_hari.max()), unsafe_allow_html=True)
 
 
 # Tabel Detail
