@@ -284,12 +284,17 @@ df['Tanggal'] = pd.to_datetime(df['Tanggal'])
 df_last = df.sort_values(by='Tanggal').groupby('ID_Customer').last().reset_index()
 
 
-# Hitung jumlah customer per tahap progres terakhir
-tahapan_summary = df_last['Progress'].value_counts().rename_axis('Tahap_Progres').reset_index(name='Jumlah_Customer')
-# Urutkan tahapan sesuai alur funnel
+
+# Hitung cumulative funnel: setiap tahap berisi customer yang progres terakhirnya di tahap itu ATAU lebih lanjut
 tahapan_order = ['Inisiasi', 'Presentasi', 'Penawaran Harga', 'Negosiasi', 'Paska Deal']
-tahapan_summary['Tahap_Progres'] = pd.Categorical(tahapan_summary['Tahap_Progres'], categories=tahapan_order, ordered=True)
-tahapan_summary = tahapan_summary.sort_values('Tahap_Progres')
+progress_cat = pd.Categorical(df_last['Progress'], categories=tahapan_order, ordered=True)
+tahapan_summary = []
+for i, tahap in enumerate(tahapan_order):
+    # Customer yang progres terakhirnya di tahap ini atau lebih lanjut
+    mask = progress_cat.codes >= i
+    jumlah = mask.sum()
+    tahapan_summary.append({'Tahap_Progres': tahap, 'Jumlah_Customer': jumlah})
+tahapan_summary = pd.DataFrame(tahapan_summary)
 
 
 st.markdown("---")
