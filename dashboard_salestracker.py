@@ -214,21 +214,7 @@ with tab2:
 
 with tab4:
 
-    st.markdown("<h3 style='color:#B9770E;'>Prioritas & Rekomendasi Follow-up</h3>", unsafe_allow_html=True)
-    # Prioritas Table: sort by Nilai_Kontrak (desc), highlight deal, and show top 30
-    prioritas_df = filtered_df[['Nama_Customer','Nama_Sales','Progress','Status_Kontrak','Nilai_Kontrak']].copy()
-    prioritas_df = prioritas_df.sort_values(['Status_Kontrak','Nilai_Kontrak'], ascending=[False,False]).head(30)
-    def highlight_deal(s):
-        return ['background-color: #D4EFDF' if v.lower() == 'deal' else '' for v in s]
-    st.dataframe(
-        prioritas_df.style.apply(highlight_deal, subset=['Status_Kontrak'])
-        .format({'Nilai_Kontrak': 'Rp {:,.0f}'})
-    )
-
-    with st.expander("Lihat Rekomendasi Lanjutan"):
-        st.markdown("- Prioritaskan follow-up pada customer dengan nilai kontrak besar dan status belum deal.")
-        st.markdown("- Perhatikan progress yang stagnan, lakukan pendekatan berbeda.")
-        st.markdown("- Analisis alasan lost untuk perbaikan proses.")
+    # Tabel prioritas manual dihapus sesuai permintaan
     st.markdown("<h3 style='color:#B9770E;'>Prioritas & Rekomendasi Follow-up (Prediksi Model)</h3>", unsafe_allow_html=True)
     # --- Pengelompokan Prioritas dan Rekomendasi Strategi ---
     def segment_prioritas(prob):
