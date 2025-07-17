@@ -237,6 +237,19 @@ with tab4:
         else:
             return 'Evaluasi prospek, fokus ke customer lain.'
 
+    # Pengelompokan prioritas kombinasi probabilitas dan nilai kontrak
+    def segment_prioritas_kombinasi(prob, nilai):
+        if pd.isnull(prob) or pd.isnull(nilai):
+            return '-'
+        if prob >= 0.8 and nilai >= 100_000_000:
+            return "🔥 PRIORITAS SANGAT TINGGI"
+        elif prob >= 0.6 and nilai >= 50_000_000:
+            return "⚡ PRIORITAS TINGGI"
+        elif prob >= 0.4 and nilai >= 20_000_000:
+            return "🔵 PRIORITAS SEDANG"
+        else:
+            return "🟤 PRIORITAS RENDAH"
+
     # Cek apakah sudah ada prediksi probabilitas deal
     if 'Prob_Deal' in filtered_df.columns:
         pred_df = filtered_df.copy()
@@ -248,6 +261,7 @@ with tab4:
     # Terapkan pengelompokan prioritas dan strategi
     pred_df['Prioritas'] = pred_df['Prob_Deal'].apply(lambda x: segment_prioritas(x) if pd.notnull(x) else '-')
     pred_df['Rekomendasi_Strategi'] = pred_df.apply(lambda row: strategi(row['Progress'], row['Prob_Deal']) if pd.notnull(row['Prob_Deal']) else '-', axis=1)
+    pred_df['Prioritas_Kombinasi'] = pred_df.apply(lambda row: segment_prioritas_kombinasi(row['Prob_Deal'], row['Nilai_Kontrak']), axis=1)
 
     # Tabel prioritas: urutkan berdasarkan Prob_Deal
     prioritas_tabel = pred_df[['Nama_Customer', 'Nama_Sales', 'Progress', 'Prob_Deal', 'Prioritas', 'Rekomendasi_Strategi']].copy()
@@ -255,12 +269,23 @@ with tab4:
     prioritas_tabel['Prob_Deal'] = prioritas_tabel['Prob_Deal'].apply(lambda x: f"{x*100:.1f}%" if pd.notnull(x) else '-')
     st.dataframe(prioritas_tabel, use_container_width=True)
 
+    st.markdown("<h4 style='color:#B9770E;'>Prioritas Kombinasi Probabilitas & Nilai Kontrak</h4>", unsafe_allow_html=True)
+    prioritas_kombinasi_tabel = pred_df[['Nama_Customer', 'Nama_Sales', 'Progress', 'Nilai_Kontrak', 'Prob_Deal', 'Prioritas_Kombinasi']].copy()
+    prioritas_kombinasi_tabel = prioritas_kombinasi_tabel.sort_values(['Prioritas_Kombinasi', 'Prob_Deal', 'Nilai_Kontrak'], ascending=[True, False, False]).head(30)
+    prioritas_kombinasi_tabel['Prob_Deal'] = prioritas_kombinasi_tabel['Prob_Deal'].apply(lambda x: f"{x*100:.1f}%" if pd.notnull(x) else '-')
+    prioritas_kombinasi_tabel['Nilai_Kontrak'] = prioritas_kombinasi_tabel['Nilai_Kontrak'].apply(lambda x: f"Rp {x:,.0f}" if pd.notnull(x) else '-')
+    st.dataframe(prioritas_kombinasi_tabel, use_container_width=True)
+
     with st.expander("Penjelasan Pengelompokan Prioritas & Strategi"):
         st.markdown("""
         - **🔥 Prioritas Tinggi:** Probabilitas deal ≥ 80%. Segera follow-up untuk closing.
         - **⚠️ Perlu Follow-up Segera:** Probabilitas deal 60-79%. Perkuat value proposition dan lakukan pendekatan aktif.
         - **🧊 Potensi Rendah:** Probabilitas deal 40-59%. Identifikasi hambatan dan lakukan pendekatan ulang.
         - **❌ Tidak Disarankan:** Probabilitas deal < 40%. Fokus ke prospek lain.
+        - **🔥 PRIORITAS SANGAT TINGGI:** Probabilitas ≥ 80% & Nilai Kontrak ≥ 100jt
+        - **⚡ PRIORITAS TINGGI:** Probabilitas ≥ 60% & Nilai Kontrak ≥ 50jt
+        - **🔵 PRIORITAS SEDANG:** Probabilitas ≥ 40% & Nilai Kontrak ≥ 20jt
+        - **🟤 PRIORITAS RENDAH:** Di bawah kriteria di atas
         - Rekomendasi strategi otomatis menyesuaikan progress dan probabilitas.
         """)
     st.markdown("<hr>", unsafe_allow_html=True)
