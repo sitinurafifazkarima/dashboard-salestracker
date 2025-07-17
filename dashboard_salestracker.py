@@ -105,10 +105,13 @@ with tab3:
             non_deal_durasi = non_deal_durasi.groupby('ID_Customer').apply(durasi_per_tahap)
             durasi_tahap = non_deal_durasi.groupby('Progress')['Durasi_Tahap'].mean().sort_values(ascending=False)
             fig5, ax5 = plt.subplots(figsize=(8,3))
-            durasi_tahap.plot(kind='bar', color='#F1948A', edgecolor='black', ax=ax5)
+            durasi_tahap = durasi_tahap[::-1]  # agar urutan tahap dari awal ke akhir
+            ax5.plot(durasi_tahap.index, durasi_tahap.values, marker='o', color='#2874A6', linewidth=2)
             ax5.set_ylabel('Rata-rata Durasi (hari)')
             ax5.set_title('Rata-rata Durasi di Setiap Tahap (Customer Tidak Deal)')
-            ax5.set_xticklabels(ax5.get_xticklabels(), rotation=30)
+            ax5.set_xticks(range(len(durasi_tahap.index)))
+            ax5.set_xticklabels(durasi_tahap.index, rotation=30)
+            ax5.grid(True, linestyle='--', alpha=0.5)
             st.pyplot(fig5)
         else:
             st.info('Tidak ada data durasi untuk customer tidak deal.')
