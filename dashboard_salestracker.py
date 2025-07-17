@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -5,15 +6,12 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from wordcloud import WordCloud
 
-df = load_data()
-
 st.set_page_config(page_title="Sales Tracker Dashboard", layout="wide")
 st.markdown("""
 <h1 style='text-align:center; color:#2E86C1;'>📊 Dashboard Analisis Sales Tracker</h1>
 <p style='text-align:center;'>Pantau performa sales, pipeline, dan insight strategi secara real-time.</p>
 """, unsafe_allow_html=True)
 
-# Load data
 @st.cache_data
 def load_data():
     try:
@@ -21,6 +19,7 @@ def load_data():
     except FileNotFoundError:
         st.error("File 'sales_visits_finalbgt_enriched.csv' tidak ditemukan.\n\nPastikan file sudah di-upload ke folder yang sama dengan file dashboard ini.")
         return None
+
 df = load_data()
 if df is None:
     st.stop()
