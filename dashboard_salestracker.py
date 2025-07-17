@@ -170,6 +170,23 @@ with tab1:
         else:
             st.metric("Rata-rata Durasi Deal (hari)", "-")
 
+    # --- Analisis Rata-rata Durasi Siklus Sales (Kunjungan 1 ke 5) ---
+    siklus_list = []
+    for cust, group in filtered_df.groupby('ID_Customer'):
+        group = group.sort_values('Tanggal')
+        if 'Kunjungan_Ke' in group.columns and group['Kunjungan_Ke'].max() >= 5:
+            t_awal = group[group['Kunjungan_Ke'] == 1]['Tanggal'].min()
+            t_akhir = group[group['Kunjungan_Ke'] == 5]['Tanggal'].min()
+            if pd.notnull(t_awal) and pd.notnull(t_akhir):
+                durasi = (pd.to_datetime(t_akhir) - pd.to_datetime(t_awal)).days
+                siklus_list.append({'ID_Customer': cust, 'Durasi_Siklus_1_5': durasi})
+    siklus_df = pd.DataFrame(siklus_list)
+    if not siklus_df.empty:
+        rata2_siklus = siklus_df['Durasi_Siklus_1_5'].mean()
+        st.info(f'Rata-rata durasi siklus sales dari kunjungan 1 ke 5: {rata2_siklus:.2f} hari')
+    else:
+        st.warning('Tidak ada customer yang mencapai kunjungan ke-5.')
+
     st.markdown("<hr>", unsafe_allow_html=True)
     st.markdown("<h3 style='color:#117A65;'>Ketercapaian Target per Sales</h3>", unsafe_allow_html=True)
     deal_df = filtered_df[filtered_df['Status_Kontrak'].str.lower() == 'deal']
