@@ -89,18 +89,19 @@ with tab3:
 
 # --- KPI & Target (tab1) ---
 with tab1:
-    st.subheader("KPI Utama & Target")
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
+
+    st.markdown("<h3 style='color:#117A65;'>Ringkasan KPI</h3>", unsafe_allow_html=True)
+    kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+    with kpi1:
         total_deal = filtered_df[filtered_df['Status_Kontrak'].str.lower() == 'deal']['Nilai_Kontrak'].sum()
         st.metric("Total Nilai Deal", f"Rp {total_deal:,.0f}")
-    with col2:
+    with kpi2:
         conversion = (filtered_df['Status_Kontrak'].str.lower() == 'deal').mean() * 100
         st.metric("Conversion Rate", f"{conversion:.1f}%")
-    with col3:
+    with kpi3:
         total_prospek = filtered_df['ID_Kunjungan'].nunique()
         st.metric("Total Prospek", f"{total_prospek}")
-    with col4:
+    with kpi4:
         rata2_durasi = None
         if 'Tanggal' in filtered_df.columns and 'ID_Customer' in filtered_df.columns:
             try:
@@ -124,32 +125,44 @@ with tab1:
         else:
             st.metric("Rata-rata Durasi Deal (hari)", "-")
 
-    st.markdown("---")
-    st.subheader("Ketercapaian Target per Sales")
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown("<h3 style='color:#117A65;'>Ketercapaian Target per Sales</h3>", unsafe_allow_html=True)
     deal_df = filtered_df[filtered_df['Status_Kontrak'].str.lower() == 'deal']
     nilai_kontrak_per_sales = deal_df.groupby('Nama_Sales')['Nilai_Kontrak'].sum()
     target_sales_per_sales = filtered_df.groupby('Nama_Sales')['Target_Sales'].sum()
     ketercapaian_target = (nilai_kontrak_per_sales / target_sales_per_sales).fillna(0)
     ketercapaian_target = ketercapaian_target.sort_values(ascending=False)
     fig1, ax1 = plt.subplots(figsize=(10,4))
-    ketercapaian_target.plot(kind='bar', color='skyblue', edgecolor='black', ax=ax1)
+    bars = ax1.bar(ketercapaian_target.index, ketercapaian_target.values, color=plt.cm.PuBu(np.linspace(0.4,0.9,len(ketercapaian_target))), edgecolor='black', linewidth=1.5)
+    for bar in bars:
+        bar.set_linewidth(0.5)
+        bar.set_alpha(0.85)
+        bar.set_zorder(3)
+        bar.set_capstyle('round')
     ax1.set_ylabel('Rasio Ketercapaian Target')
     ax1.set_title('Ketercapaian Target per Sales (Nilai Kontrak Deal / Target Sales)')
     ax1.set_xticklabels(ax1.get_xticklabels(), rotation=45)
-    ax1.grid(axis='y', linestyle='--', alpha=0.5)
+    ax1.grid(axis='y', linestyle='--', alpha=0.3, zorder=0)
+    fig1.tight_layout()
     st.pyplot(fig1)
 
-    st.markdown("---")
-    st.subheader("Conversion Rate per Sales")
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown("<h3 style='color:#117A65;'>Conversion Rate per Sales</h3>", unsafe_allow_html=True)
     prospek_per_sales = filtered_df.groupby('Nama_Sales')['ID_Kunjungan'].nunique()
     deal_per_sales = deal_df.groupby('Nama_Sales')['ID_Kunjungan'].nunique()
     conversion_rate_sales = (deal_per_sales / prospek_per_sales * 100).fillna(0)
     fig2, ax2 = plt.subplots(figsize=(10,4))
-    conversion_rate_sales.sort_values(ascending=False).plot(kind='bar', color='orange', edgecolor='black', ax=ax2)
+    bars2 = ax2.bar(conversion_rate_sales.sort_values(ascending=False).index, conversion_rate_sales.sort_values(ascending=False).values, color=plt.cm.Oranges(np.linspace(0.4,0.9,len(conversion_rate_sales))), edgecolor='black', linewidth=1.5)
+    for bar in bars2:
+        bar.set_linewidth(0.5)
+        bar.set_alpha(0.85)
+        bar.set_zorder(3)
+        bar.set_capstyle('round')
     ax2.set_ylabel('Conversion Rate (%)')
     ax2.set_title('Conversion Rate per Sales')
     ax2.set_xticklabels(ax2.get_xticklabels(), rotation=45)
-    ax2.grid(axis='y', linestyle='--', alpha=0.5)
+    ax2.grid(axis='y', linestyle='--', alpha=0.3, zorder=0)
+    fig2.tight_layout()
     st.pyplot(fig2)
 
 # --- Pipeline & Heatmap (tab2) ---
@@ -172,10 +185,25 @@ with tab2:
         st.info('Kolom Progress tidak tersedia.')
 
 with tab4:
-    st.subheader("Prioritas & Rekomendasi Follow-up")
-    st.dataframe(filtered_df[['Nama_Customer','Nama_Sales','Progress','Status_Kontrak','Nilai_Kontrak']].head(30))
-    st.markdown("---")
-    st.subheader("Wordcloud Alasan Lost")
+
+    st.markdown("<h3 style='color:#B9770E;'>Prioritas & Rekomendasi Follow-up</h3>", unsafe_allow_html=True)
+    # Prioritas Table: sort by Nilai_Kontrak (desc), highlight deal, and show top 30
+    prioritas_df = filtered_df[['Nama_Customer','Nama_Sales','Progress','Status_Kontrak','Nilai_Kontrak']].copy()
+    prioritas_df = prioritas_df.sort_values(['Status_Kontrak','Nilai_Kontrak'], ascending=[False,False]).head(30)
+    def highlight_deal(s):
+        return ['background-color: #D4EFDF' if v.lower() == 'deal' else '' for v in s]
+    st.dataframe(
+        prioritas_df.style.apply(highlight_deal, subset=['Status_Kontrak'])
+        .format({'Nilai_Kontrak': 'Rp {:,.0f}'})
+    )
+
+    with st.expander("Lihat Rekomendasi Lanjutan"):
+        st.markdown("- Prioritaskan follow-up pada customer dengan nilai kontrak besar dan status belum deal.")
+        st.markdown("- Perhatikan progress yang stagnan, lakukan pendekatan berbeda.")
+        st.markdown("- Analisis alasan lost untuk perbaikan proses.")
+
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown("<h3 style='color:#B9770E;'>Wordcloud Alasan Lost</h3>", unsafe_allow_html=True)
     if 'Catatan' in filtered_df.columns and 'Status_Kontrak' in filtered_df.columns:
         last_progress = filtered_df.sort_values('Tanggal').groupby('ID_Customer').last().reset_index()
         lost_notes = last_progress[last_progress['Status_Kontrak'].str.lower() != 'deal']['Catatan'].dropna().astype(str)
