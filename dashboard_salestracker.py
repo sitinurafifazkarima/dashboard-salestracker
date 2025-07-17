@@ -21,6 +21,34 @@ with st.sidebar:
     except Exception as e:
         st.error(f"Gagal memuat data: {e}")
         st.stop()
+
+    # --- Logistic Regression untuk prediksi probabilitas deal ---
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.model_selection import train_test_split
+    # Cek apakah sudah ada Prob_Deal, jika belum prediksi
+    if 'Prob_Deal' not in df.columns:
+        # Hanya prediksi jika kolom-kolom fitur tersedia
+        fitur_cols = ['Progress', 'Segmen', 'Status_Customer', 'Jenis_Kunjungan', 'Level_Sales']
+        if all(col in df.columns for col in fitur_cols) and 'Status_Kontrak' in df.columns:
+            X = df[fitur_cols].copy()
+            y = (df['Status_Kontrak'].str.lower() == 'deal').astype(int)
+            X_encoded = pd.get_dummies(X, drop_first=True)
+            # Split untuk training
+            X_train, X_test, y_train, y_test = train_test_split(X_encoded, y, test_size=0.2, random_state=42)
+            model = LogisticRegression(max_iter=1000)
+            model.fit(X_train, y_train)
+            # Prediksi probabilitas pada data terakhir tiap customer
+            if 'Tanggal' in df.columns and 'ID_Customer' in df.columns:
+                latest = df.sort_values('Tanggal').groupby('ID_Customer').last().reset_index()
+                X_pred = pd.get_dummies(latest[fitur_cols], drop_first=True)
+                X_pred = X_pred.reindex(columns=X_encoded.columns, fill_value=0)
+                latest['Prob_Deal'] = model.predict_proba(X_pred)[:,1]
+                # Gabungkan Prob_Deal ke df utama (berdasarkan ID_Customer)
+                df = df.merge(latest[['ID_Customer','Prob_Deal']], on='ID_Customer', how='left')
+            else:
+                df['Prob_Deal'] = np.nan
+        else:
+            df['Prob_Deal'] = np.nan
     sales_list = df['Nama_Sales'].unique()
     selected_sales = st.multiselect("Pilih Sales", sales_list, default=sales_list)
     segmen_list = df['Segmen'].unique() if 'Segmen' in df.columns else []
