@@ -201,7 +201,68 @@ with tab4:
         st.markdown("- Prioritaskan follow-up pada customer dengan nilai kontrak besar dan status belum deal.")
         st.markdown("- Perhatikan progress yang stagnan, lakukan pendekatan berbeda.")
         st.markdown("- Analisis alasan lost untuk perbaikan proses.")
+    st.markdown("<h3 style='color:#B9770E;'>Prioritas & Rekomendasi Follow-up (Prediksi Model)</h3>", unsafe_allow_html=True)
+    # --- Pengelompokan Prioritas dan Rekomendasi Strategi ---
+    def segment_prioritas(prob):
+        if prob >= 0.8:
+            return "🔥 Prioritas Tinggi"
+        elif prob >= 0.6:
+            return "⚠️ Perlu Follow-up Segera"
+        elif prob >= 0.4:
+            return "🧊 Potensi Rendah"
+        else:
+            return "❌ Tidak Disarankan"
 
+    def strategi(progress, prob):
+        if prob >= 0.8:
+            if progress == 'Negosiasi':
+                return 'Segera follow-up untuk closing!'
+            elif progress == 'Penawaran Harga':
+                return 'Dorong ke tahap negosiasi, tawarkan benefit tambahan.'
+            elif progress == 'Presentasi':
+                return 'Pastikan kebutuhan customer terjawab, lanjutkan ke penawaran.'
+            else:
+                return 'Bangun hubungan, gali kebutuhan customer.'
+        elif prob >= 0.6:
+            if progress == 'Negosiasi':
+                return 'Perkuat value proposition, atasi keberatan.'
+            elif progress == 'Penawaran Harga':
+                return 'Tawarkan promo atau diskon khusus.'
+            elif progress == 'Presentasi':
+                return 'Tingkatkan engagement, follow-up presentasi.'
+            else:
+                return 'Lakukan pendekatan lebih personal.'
+        elif prob >= 0.4:
+            return 'Identifikasi hambatan, lakukan pendekatan ulang.'
+        else:
+            return 'Evaluasi prospek, fokus ke customer lain.'
+
+    # Cek apakah sudah ada prediksi probabilitas deal
+    if 'Prob_Deal' in filtered_df.columns:
+        pred_df = filtered_df.copy()
+    else:
+        st.warning('Kolom Prob_Deal tidak ditemukan di data filter. Pastikan prediksi model sudah dijalankan dan digabung ke data utama.')
+        pred_df = filtered_df.copy()
+        pred_df['Prob_Deal'] = np.nan
+
+    # Terapkan pengelompokan prioritas dan strategi
+    pred_df['Prioritas'] = pred_df['Prob_Deal'].apply(lambda x: segment_prioritas(x) if pd.notnull(x) else '-')
+    pred_df['Rekomendasi_Strategi'] = pred_df.apply(lambda row: strategi(row['Progress'], row['Prob_Deal']) if pd.notnull(row['Prob_Deal']) else '-', axis=1)
+
+    # Tabel prioritas: urutkan berdasarkan Prob_Deal
+    prioritas_tabel = pred_df[['Nama_Customer', 'Nama_Sales', 'Progress', 'Prob_Deal', 'Prioritas', 'Rekomendasi_Strategi']].copy()
+    prioritas_tabel = prioritas_tabel.sort_values('Prob_Deal', ascending=False).head(30)
+    prioritas_tabel['Prob_Deal'] = prioritas_tabel['Prob_Deal'].apply(lambda x: f"{x*100:.1f}%" if pd.notnull(x) else '-')
+    st.dataframe(prioritas_tabel, use_container_width=True)
+
+    with st.expander("Penjelasan Pengelompokan Prioritas & Strategi"):
+        st.markdown("""
+        - **🔥 Prioritas Tinggi:** Probabilitas deal ≥ 80%. Segera follow-up untuk closing.
+        - **⚠️ Perlu Follow-up Segera:** Probabilitas deal 60-79%. Perkuat value proposition dan lakukan pendekatan aktif.
+        - **🧊 Potensi Rendah:** Probabilitas deal 40-59%. Identifikasi hambatan dan lakukan pendekatan ulang.
+        - **❌ Tidak Disarankan:** Probabilitas deal < 40%. Fokus ke prospek lain.
+        - Rekomendasi strategi otomatis menyesuaikan progress dan probabilitas.
+        """)
     st.markdown("<hr>", unsafe_allow_html=True)
     st.markdown("<h3 style='color:#B9770E;'>Wordcloud Alasan Lost</h3>", unsafe_allow_html=True)
     if 'Catatan' in filtered_df.columns and 'Status_Kontrak' in filtered_df.columns:
