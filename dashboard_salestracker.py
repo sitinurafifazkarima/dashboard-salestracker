@@ -10,10 +10,18 @@ st.title("📊 Sales Tracker Dashboard")
 st.markdown("Dashboard interaktif untuk analisis performa sales, pipeline, dan insight actionable.")
 
 # Load data
+
 @st.cache_data
 def load_data():
-    return pd.read_csv('sales_visits_finalbgt_enriched.csv')
+    try:
+        return pd.read_csv('sales_visits_finalbgt_enriched.csv')
+    except FileNotFoundError:
+        st.error("File 'sales_visits_finalbgt_enriched.csv' tidak ditemukan.\n\nPastikan file sudah di-upload ke folder yang sama dengan file dashboard ini.")
+        return None
+
 df = load_data()
+if df is None:
+    st.stop()
 
 # Sidebar filter
 with st.sidebar:
