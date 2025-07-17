@@ -50,11 +50,25 @@ with st.sidebar:
         else:
             df['Prob_Deal'] = np.nan
     sales_list = df['Nama_Sales'].unique()
-    selected_sales = st.multiselect("Pilih Sales", sales_list, default=sales_list)
+    selected_sales = st.selectbox("Pilih Sales (satu atau lebih)", options=["--Pilih Semua--"] + list(sales_list), index=0)
+    if selected_sales == "--Pilih Semua--":
+        selected_sales = list(sales_list)
+    else:
+        selected_sales = [selected_sales]
+
     segmen_list = df['Segmen'].unique() if 'Segmen' in df.columns else []
-    selected_segmen = st.multiselect("Pilih Segmen", segmen_list, default=segmen_list)
+    selected_segmen = st.selectbox("Pilih Segmen (satu atau lebih)", options=["--Pilih Semua--"] + list(segmen_list), index=0) if len(segmen_list) > 0 else []
+    if selected_segmen == "--Pilih Semua--":
+        selected_segmen = list(segmen_list)
+    elif selected_segmen:
+        selected_segmen = [selected_segmen]
+
     status_list = df['Status_Kontrak'].unique()
-    selected_status = st.multiselect("Status Kontrak", status_list, default=status_list)
+    selected_status = st.selectbox("Status Kontrak (satu atau lebih)", options=["--Pilih Semua--"] + list(status_list), index=0)
+    if selected_status == "--Pilih Semua--":
+        selected_status = list(status_list)
+    else:
+        selected_status = [selected_status]
 
 filtered_df = df[
     df['Nama_Sales'].isin(selected_sales) &
