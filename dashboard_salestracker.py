@@ -39,6 +39,54 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "KPI & Target", "Pipeline & Heatmap", "Root Cause", "Prioritas", "Analisis Lanjutan", "Insight"
 ])
 
+# --- Root Cause (tab3) ---
+with tab3:
+    st.subheader("Aktivitas Sales vs Ketercapaian Target")
+    # Kunjungan per sales
+    kunjungan_per_sales = filtered_df.groupby('Nama_Sales')['ID_Kunjungan'].nunique()
+    deal_df = filtered_df[filtered_df['Status_Kontrak'].str.lower() == 'deal']
+    nilai_kontrak_per_sales = deal_df.groupby('Nama_Sales')['Nilai_Kontrak'].sum()
+    target_sales_per_sales = filtered_df.groupby('Nama_Sales')['Target_Sales'].sum()
+    ketercapaian_target = (nilai_kontrak_per_sales / target_sales_per_sales).fillna(0)
+    compare_df = pd.DataFrame({
+        'Kunjungan': kunjungan_per_sales,
+        'Ketercapaian_Target': ketercapaian_target
+    }).fillna(0)
+    fig4, ax4 = plt.subplots(figsize=(7,5))
+    ax4.scatter(compare_df['Kunjungan'], compare_df['Ketercapaian_Target'], alpha=0.7, color='#1ABC9C')
+    ax4.set_xlabel('Jumlah Kunjungan/FU')
+    ax4.set_ylabel('Rasio Ketercapaian Target')
+    ax4.set_title('Aktivitas Sales vs Ketercapaian Target')
+    ax4.grid(True, linestyle='--', alpha=0.5)
+    st.pyplot(fig4)
+
+    st.markdown("---")
+    st.subheader("Durasi per Tahap untuk Customer Tidak Deal")
+    if 'Progress' in filtered_df.columns:
+        last_progress = filtered_df.sort_values('Tanggal').groupby('ID_Customer').last().reset_index()
+        non_deal = last_progress[last_progress['Status_Kontrak'].str.lower() != 'deal']
+        non_deal_ids = non_deal['ID_Customer'].unique() if not non_deal.empty else []
+        non_deal_durasi = filtered_df[filtered_df['ID_Customer'].isin(non_deal_ids)].copy()
+        if not non_deal_durasi.empty:
+            non_deal_durasi['Tanggal'] = pd.to_datetime(non_deal_durasi['Tanggal'])
+            def durasi_per_tahap(df_cust):
+                df_cust = df_cust.sort_values('Tanggal')
+                df_cust['Next_Tanggal'] = df_cust['Tanggal'].shift(-1)
+                df_cust['Durasi_Tahap'] = (df_cust['Next_Tanggal'] - df_cust['Tanggal']).dt.days
+                return df_cust
+            non_deal_durasi = non_deal_durasi.groupby('ID_Customer').apply(durasi_per_tahap)
+            durasi_tahap = non_deal_durasi.groupby('Progress')['Durasi_Tahap'].mean().sort_values(ascending=False)
+            fig5, ax5 = plt.subplots(figsize=(8,3))
+            durasi_tahap.plot(kind='bar', color='#F1948A', edgecolor='black', ax=ax5)
+            ax5.set_ylabel('Rata-rata Durasi (hari)')
+            ax5.set_title('Rata-rata Durasi di Setiap Tahap (Customer Tidak Deal)')
+            ax5.set_xticklabels(ax5.get_xticklabels(), rotation=30)
+            st.pyplot(fig5)
+        else:
+            st.info('Tidak ada data durasi untuk customer tidak deal.')
+    else:
+        st.info('Kolom Progress tidak tersedia.')
+
 # --- KPI & Target (tab1) ---
 with tab1:
     st.subheader("KPI Utama & Target")
