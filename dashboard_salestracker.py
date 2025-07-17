@@ -385,10 +385,7 @@ with tab5:
         ax8.set_title('Distribusi Waktu Respons: Deal vs Lost')
         ax8.legend()
         st.pyplot(fig8)
-        if mean_resp_deal < mean_resp_lost:
-            st.success('Customer yang deal cenderung mendapat respons lebih cepat.')
-        else:
-            st.warning('Customer yang deal cenderung mendapat respons lebih lambat.')
+        st.info('Insight: Peluang Deal cenderung meningkat jika customer merespons antara hari ke-20 sampai 25, tetapi Lost tetap bisa terjadi di semua rentang waktu.')
     else:
         st.info('Kolom Kunjungan_Ke/Tanggal tidak tersedia.')
     st.markdown("---")
