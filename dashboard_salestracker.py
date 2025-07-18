@@ -40,7 +40,7 @@ filtered_df = df[
     (df['Status_Customer'].isin(status_cust))
 ]
 
-page = st.sidebar.radio("Pilih Halaman", ["🟦 Aktivitas Sales", "🟦 Performansi Sales", "🟦 Profil Sales", "🟦 Insight & Rekomendasi"])
+page = st.sidebar.radio("Pilih Halaman", ["🟦 Aktivitas Sales", "🟦 Performansi Sales", "🟦 Profil Sales"])
 
 if page == "🟦 Aktivitas Sales":
     st.title("🟦 Dashboard Aktivitas & Kinerja Tim Sales")
@@ -427,10 +427,33 @@ elif page == "🟦 Profil Sales":
         st.metric("Jumlah Deal", deal)
         st.metric("Rata-rata Progress", f"{data_sales['Progress_Score'].mean():.1f} / 5")
 
-    # Rata-rata durasi closing
-    closing_df = data_sales.groupby('ID_Customer').agg(Start=('Tanggal', 'min'), End=('Tanggal', 'max')).reset_index()
-    closing_df['Durasi'] = (closing_df['End'] - closing_df['Start']).dt.days
-    st.metric("Rata-rata Durasi Closing", f"{closing_df['Durasi'].mean():.0f} Hari")
+    # Rata-rata durasi closing yang sudah diperbaiki (dari Inisiasi ke Paska Deal)
+    st.subheader("⏱️ Durasi Proses Closing (Inisiasi → Deal)")
+    deal_customers = data_sales[data_sales['Progress'] == 'Paska Deal']['ID_Customer'].unique()
+    data_deal = data_sales[data_sales['ID_Customer'].isin(deal_customers)]
+
+    durasi_per_customer = []
+    for cust_id, group in data_deal.groupby('ID_Customer'):
+        group = group.sort_values('Tanggal')
+        tanggal_inisiasi = group[group['Progress'] == 'Inisiasi']['Tanggal'].min()
+        tanggal_deal = group[group['Progress'] == 'Paska Deal']['Tanggal'].max()
+        if pd.notnull(tanggal_inisiasi) and pd.notnull(tanggal_deal):
+            durasi = (tanggal_deal - tanggal_inisiasi).days
+            if durasi >= 0:
+                durasi_per_customer.append(durasi)
+
+    if durasi_per_customer:
+        rata2_durasi = np.mean(durasi_per_customer)
+        median_durasi = np.median(durasi_per_customer)
+    else:
+        rata2_durasi = 0
+        median_durasi = 0
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Rata-rata Durasi Closing", f"{rata2_durasi:.1f} Hari")
+    with col2:
+        st.caption(f"Median Durasi Closing: {median_durasi:.1f} Hari")
 
     # Analisis Tambahan Matplotlib
     st.subheader("📊 Analisis Visual Sales (Advanced)")
