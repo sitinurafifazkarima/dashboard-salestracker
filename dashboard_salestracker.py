@@ -111,20 +111,27 @@ if page == "🟦 Overview":
         st.plotly_chart(stat_fig)
 
     # Breakdown Nilai Kontrak Terakhir
+        # Breakdown Nilai Kontrak Terakhir (warna diselaraskan)
     st.subheader("📌 Breakdown Nilai Kontrak (Customer Terakhir)")
-    labels = [
+    kontrak_labels = [
         f"Pendapatan Riil\nRp {kontrak_summary['pendapatan_riil']:,.0f}",
         f"Prospek (Forecast)\nRp {kontrak_summary['prospek']:,.0f}",
         f"Lost/Cancel\nRp {kontrak_summary['lost']:,.0f}"
     ]
     fig_kontrak = px.pie(
         names=['Riil', 'Prospek', 'Lost'],
-        values=[kontrak_summary['pendapatan_riil'], kontrak_summary['prospek'], kontrak_summary['lost']],
+        values=[
+            kontrak_summary['pendapatan_riil'],
+            kontrak_summary['prospek'],
+            kontrak_summary['lost']
+        ],
         title='Breakdown Nilai Kontrak (Latest per Customer)',
-        color_discrete_sequence=['#4CAF50', '#FFC107', '#F44336'],
+        color_discrete_sequence=['#26a69a', '#b2dfdb', '#80cbc4'],  # Warna lembut selaras
         hole=0.4
     )
-    fig_kontrak.update_traces(textinfo='percent+label')
+    fig_kontrak.update_traces(textinfo='percent+label', textfont_size=14)
+    st.plotly_chart(fig_kontrak)
+
     st.plotly_chart(fig_kontrak)
 
     st.markdown(f"""
