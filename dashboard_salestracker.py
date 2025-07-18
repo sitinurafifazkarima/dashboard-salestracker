@@ -132,8 +132,6 @@ if page == "🟦 Overview":
     fig_kontrak.update_traces(textinfo='percent+label', textfont_size=14)
     st.plotly_chart(fig_kontrak)
 
-    st.plotly_chart(fig_kontrak)
-
     st.markdown(f"""
         <div style='background-color:#e8f5e9;padding:1rem;border-radius:10px;margin-top:1rem;'>
         <b>📈 Total Nilai Project:</b> Rp {kontrak_summary['total_project']:,.0f}<br>
