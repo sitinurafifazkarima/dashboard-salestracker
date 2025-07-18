@@ -75,6 +75,37 @@ if page == "🟦 Overview":
         st.metric("Rata-rata Progress", f"{avg_progress:.1f} / 5")
         st.caption("Tahapan funnel rata-rata")
 
+    # Breakdown Nilai Kontrak Terakhir
+        # Breakdown Nilai Kontrak Terakhir (warna diselaraskan)
+    st.subheader("📌 Breakdown Nilai Kontrak (Customer Terakhir)")
+    kontrak_labels = [
+        f"Pendapatan Riil\nRp {kontrak_summary['pendapatan_riil']:,.0f}",
+        f"Prospek (Forecast)\nRp {kontrak_summary['prospek']:,.0f}",
+        f"Lost/Cancel\nRp {kontrak_summary['lost']:,.0f}"
+    ]
+    fig_kontrak = px.pie(
+        names=['Riil', 'Prospek', 'Lost'],
+        values=[
+            kontrak_summary['pendapatan_riil'],
+            kontrak_summary['prospek'],
+            kontrak_summary['lost']
+        ],
+        title='Breakdown Nilai Kontrak (Latest per Customer)',
+        color_discrete_sequence=['#26a69a', '#b2dfdb', '#80cbc4'],  # Warna lembut selaras
+        hole=0.4
+    )
+    fig_kontrak.update_traces(textinfo='percent+label', textfont_size=14)
+    st.plotly_chart(fig_kontrak)
+
+    st.markdown(f"""
+        <div style='background-color:#e8f5e9;padding:1rem;border-radius:10px;margin-top:1rem;'>
+        <b>📈 Total Nilai Project:</b> Rp {kontrak_summary['total_project']:,.0f}<br>
+        <b>✅ Pendapatan Riil:</b> {kontrak_summary['persen_riil']:.1f}%<br>
+        <b>📊 Prospek:</b> {kontrak_summary['persen_prospek']:.1f}%<br>
+        <b>❌ Lost:</b> {kontrak_summary['persen_lost']:.1f}%
+        </div>
+    """, unsafe_allow_html=True)
+
     # Funnel Aktivitas
     st.subheader("📉 Funnel Aktivitas Sales")
     funnel = filtered_df['Progress'].value_counts().reindex(progress_map.keys(), fill_value=0)
@@ -152,19 +183,6 @@ if page == "🟦 Overview":
     # ℹ️ Insight drop-off
     st.info(f"🔻 Drop-off terbesar terjadi di tahap **{max_drop[0]}**, sebanyak **{max_drop[1]} customer** tidak lanjut ke tahap berikutnya.")
 
-    # Analisis Funnel per Segmen
-    funnel_segmen = {}
-    for seg in filtered_df['Segmen'].dropna().unique():
-        df_seg = filtered_df[filtered_df['Segmen'] == seg]
-        funnel_segmen[seg] = {
-            tahap: df_seg[df_seg['Progress'] == tahap]['ID_Customer'].nunique()
-            for tahap in tahapan_funnel
-        }
-
-    segmen_df = pd.DataFrame(funnel_segmen).T.fillna(0).astype(int)
-    st.subheader("🧭 Funnel per Segmen")
-    st.dataframe(segmen_df.style.background_gradient(cmap="PuBuGn"))
-
     # Distribusi Segmen & Status
     st.subheader("📊 Distribusi Segmen & Status Customer")
     col1, col2 = st.columns(2)
@@ -177,51 +195,9 @@ if page == "🟦 Overview":
                           color_discrete_sequence=px.colors.sequential.Blues)
         st.plotly_chart(stat_fig)
 
-    # Breakdown Nilai Kontrak Terakhir
-        # Breakdown Nilai Kontrak Terakhir (warna diselaraskan)
-    st.subheader("📌 Breakdown Nilai Kontrak (Customer Terakhir)")
-    kontrak_labels = [
-        f"Pendapatan Riil\nRp {kontrak_summary['pendapatan_riil']:,.0f}",
-        f"Prospek (Forecast)\nRp {kontrak_summary['prospek']:,.0f}",
-        f"Lost/Cancel\nRp {kontrak_summary['lost']:,.0f}"
-    ]
-    fig_kontrak = px.pie(
-        names=['Riil', 'Prospek', 'Lost'],
-        values=[
-            kontrak_summary['pendapatan_riil'],
-            kontrak_summary['prospek'],
-            kontrak_summary['lost']
-        ],
-        title='Breakdown Nilai Kontrak (Latest per Customer)',
-        color_discrete_sequence=['#26a69a', '#b2dfdb', '#80cbc4'],  # Warna lembut selaras
-        hole=0.4
-    )
-    fig_kontrak.update_traces(textinfo='percent+label', textfont_size=14)
-    st.plotly_chart(fig_kontrak)
+    
 
-    st.markdown(f"""
-        <div style='background-color:#e8f5e9;padding:1rem;border-radius:10px;margin-top:1rem;'>
-        <b>📈 Total Nilai Project:</b> Rp {kontrak_summary['total_project']:,.0f}<br>
-        <b>✅ Pendapatan Riil:</b> {kontrak_summary['persen_riil']:.1f}%<br>
-        <b>📊 Prospek:</b> {kontrak_summary['persen_prospek']:.1f}%<br>
-        <b>❌ Lost:</b> {kontrak_summary['persen_lost']:.1f}%
-        </div>
-    """, unsafe_allow_html=True)
-
-    # Heatmap Segmen vs Tahapan
-    st.subheader("Heatmap Segmen vs Tahapan")
-    heatmap_df = pd.crosstab(filtered_df['Segmen'], filtered_df['Progress'])
-    st.dataframe(heatmap_df.style.background_gradient(cmap="PuBuGn"))
-
-elif page == "🟦 Funnel & Konversi":
-    st.title("🟦 Funnel & Konversi Detail")
-
-    # Funnel per Sales
-    st.subheader("Funnel Komparatif per Sales")
-    funnel_sales = filtered_df.groupby(['Nama_Sales', 'Progress']).size().reset_index(name='Jumlah')
-    fig = px.bar(funnel_sales, x='Progress', y='Jumlah', color='Nama_Sales', barmode='group',
-                 color_discrete_sequence=px.colors.sequential.Teal)
-    st.plotly_chart(fig)
+    
 
     # Durasi Konversi
     st.subheader("Durasi vs Nilai Kontrak")
