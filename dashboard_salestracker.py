@@ -142,11 +142,63 @@ elif page == "🟦 Funnel & Konversi":
                       color='Nama_Sales', color_discrete_sequence=px.colors.sequential.BuGn)
     st.plotly_chart(bar_jeda)
 
-    # Timeline Journey
-    st.subheader("Customer Journey Map")
-    timeline = px.timeline(filtered_df, x_start='Tanggal', x_end='Tanggal', y='Nama_Customer', color='Progress',
-                           hover_data=['Catatan', 'Jenis_Kunjungan'], color_discrete_sequence=px.colors.sequential.Teal)
-    st.plotly_chart(timeline)
+    # Analisis Durasi & Kunjungan
+    st.subheader("⏳ Analisis Durasi & Frekuensi Kunjungan")
+    # Durasi per customer
+    customer_duration = filtered_df.groupby('ID_Customer').agg(
+        Durasi_Total=('Tanggal', lambda x: (x.max() - x.min()).days),
+        Progress_Akhir=('Progress', 'last')
+    ).reset_index()
+    deal_duration = customer_duration[customer_duration['Progress_Akhir'] == 'Paska Deal']['Durasi_Total']
+    avg_gap = filtered_df.sort_values(['ID_Customer', 'Tanggal']).groupby('ID_Customer')['Tanggal'].diff().dt.days.dropna().mean()
+    median_gap = filtered_df.sort_values(['ID_Customer', 'Tanggal']).groupby('ID_Customer')['Tanggal'].diff().dt.days.dropna().median()
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Rata-rata Durasi Closing (Paska Deal)", f"{deal_duration.mean():.1f} hari")
+        st.caption(f"Median: {deal_duration.median():.1f} hari")
+    with col2:
+        st.metric("Rata-rata Jeda antar Kunjungan", f"{avg_gap:.1f} hari")
+        st.caption(f"Median: {median_gap:.1f} hari")
+    # Visualisasi distribusi durasi
+    import plotly.graph_objects as go
+    fig_durasi = go.Figure()
+    fig_durasi.add_trace(go.Histogram(x=deal_duration, marker_color='#b2dfdb', name='Durasi Closing'))
+    fig_durasi.update_layout(title="Distribusi Durasi Mencapai Paska Deal", xaxis_title="Durasi (hari)", yaxis_title="Frekuensi", template="plotly_white")
+    st.plotly_chart(fig_durasi)
+    # Visualisasi distribusi jeda kunjungan
+    gaps = filtered_df.sort_values(['ID_Customer', 'Tanggal']).groupby('ID_Customer')['Tanggal'].diff().dt.days.dropna()
+    fig_gap = go.Figure()
+    fig_gap.add_trace(go.Histogram(x=gaps, marker_color='#80cbc4', name='Jeda Kunjungan'))
+    fig_gap.update_layout(title="Distribusi Jeda antar Kunjungan", xaxis_title="Jeda (hari)", yaxis_title="Frekuensi", template="plotly_white")
+    st.plotly_chart(fig_gap)
+
+    # Leaderboard Sales
+    st.subheader("🏆 Leaderboard Sales")
+    sales_performance = filtered_df.groupby('Nama_Sales').agg(
+        Total_Kunjungan=('ID_Customer', 'count'),
+        Total_Nilai_Kontrak=('Nilai_Kontrak', 'sum'),
+        Jumlah_Customer=('ID_Customer', 'nunique')
+    )
+    deals_per_sales = filtered_df[filtered_df['Progress'] == 'Paska Deal'].groupby('Nama_Sales')['ID_Customer'].nunique()
+    sales_performance['Jumlah_Deal'] = deals_per_sales.fillna(0).astype(int)
+    sales_performance['Closing_Rate'] = (sales_performance['Jumlah_Deal'] / sales_performance['Jumlah_Customer'] * 100).fillna(0).round(2)
+    # Efisiensi waktu: rata-rata durasi closing per sales
+    durasi_sales = filtered_df[filtered_df['Progress'] == 'Paska Deal'].groupby('Nama_Sales').apply(
+        lambda x: (x.groupby('ID_Customer')['Tanggal'].max() - x.groupby('ID_Customer')['Tanggal'].min()).dt.days.mean()
+    )
+    sales_performance['Efisiensi_Waktu'] = durasi_sales.round(1)
+    sales_performance['Efisiensi_Waktu'] = sales_performance['Efisiensi_Waktu'].fillna(0)
+    # Ketercapaian target: deal/kunjungan
+    sales_performance['Ketercapaian_Target'] = (sales_performance['Jumlah_Deal'] / sales_performance['Total_Kunjungan'] * 100).fillna(0).round(2)
+    sales_performance = sales_performance.sort_values(['Jumlah_Deal', 'Closing_Rate', 'Ketercapaian_Target'], ascending=False)
+    st.dataframe(sales_performance.style.background_gradient(cmap="PuBuGn"))
+    # Visualisasi leaderboard
+    fig_leader = go.Figure()
+    fig_leader.add_trace(go.Bar(x=sales_performance.index, y=sales_performance['Jumlah_Deal'], name='Jumlah Deal', marker_color='#26a69a'))
+    fig_leader.add_trace(go.Bar(x=sales_performance.index, y=sales_performance['Closing_Rate'], name='Closing Rate (%)', marker_color='#b2dfdb'))
+    fig_leader.add_trace(go.Bar(x=sales_performance.index, y=sales_performance['Ketercapaian_Target'], name='Ketercapaian Target (%)', marker_color='#80cbc4'))
+    fig_leader.update_layout(barmode='group', title="Leaderboard Sales: Deal, Closing Rate, Target", template="plotly_white")
+    st.plotly_chart(fig_leader)
 
 elif page == "🟦 Profil Sales":
     st.title("🟦 Profil Individu Sales")
