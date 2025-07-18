@@ -86,17 +86,55 @@ if page == "🟦 Overview":
     )
     st.plotly_chart(funnel_fig)
 
-    # Trend Mingguan
-    st.subheader("📈 Trend Aktivitas Mingguan")
-    filtered_df['Week'] = filtered_df['Tanggal'].dt.to_period("W").astype(str)
-    kunjungan = filtered_df.groupby('Week').size().reset_index(name='Kunjungan')
-    nilai_kontrak = filtered_df.groupby('Week')['Nilai_Kontrak'].sum().reset_index(name='Kontrak')
-    trend_df = pd.merge(kunjungan, nilai_kontrak, on='Week')
-    fig_trend = px.line(trend_df, x='Week', y='Kunjungan', markers=True, title="Kunjungan per Minggu",
-                        color_discrete_sequence=px.colors.sequential.Mint)
-    fig_trend.add_bar(x=trend_df['Week'], y=trend_df['Kontrak'], name="Nilai Kontrak",
-                      marker_color='#b2dfdb')
-    st.plotly_chart(fig_trend)
+        # 🎯 Analisis Funnel Sales Lanjutan
+    st.subheader("📌 Insight Funnel Sales Tambahan")
+
+    tahapan_funnel = ['Inisiasi', 'Presentasi', 'Penawaran Harga', 'Negosiasi', 'Paska Deal']
+    
+    # Hitung jumlah customer per tahapan funnel
+    funnel_overall = {
+        tahap: filtered_df[filtered_df['Progress'] == tahap]['ID_Customer'].nunique()
+        for tahap in tahapan_funnel
+    }
+
+    # Hitung konversi antar tahap
+    konversi_tahap = {}
+    for i in range(len(tahapan_funnel) - 1):
+        current = tahapan_funnel[i]
+        next_ = tahapan_funnel[i + 1]
+        if funnel_overall[current] > 0:
+            konversi = (funnel_overall[next_] / funnel_overall[current]) * 100
+            konversi_tahap[f"{current} → {next_}"] = konversi
+
+    # Identifikasi drop-off terbesar
+    drop_offs = {
+        f"{tahapan_funnel[i]} → {tahapan_funnel[i+1]}":
+            funnel_overall[tahapan_funnel[i]] - funnel_overall[tahapan_funnel[i+1]]
+        for i in range(len(tahapan_funnel) - 1)
+    }
+    max_drop = max(drop_offs.items(), key=lambda x: x[1])
+
+    # Tampilkan dalam format info box
+    with st.expander("📊 Rincian Konversi Funnel dan Drop-off"):
+        st.markdown("**🔄 Konversi Antar Tahap (%):**")
+        for tahap, persen in konversi_tahap.items():
+            st.markdown(f"- **{tahap}**: {persen:.1f}%")
+
+        st.markdown("**⛔ Tahap dengan Drop-off Terbesar:**")
+        st.warning(f"{max_drop[0]} dengan {max_drop[1]} customer drop.")
+
+    # Analisis Funnel per Segmen
+    funnel_segmen = {}
+    for seg in filtered_df['Segmen'].dropna().unique():
+        df_seg = filtered_df[filtered_df['Segmen'] == seg]
+        funnel_segmen[seg] = {
+            tahap: df_seg[df_seg['Progress'] == tahap]['ID_Customer'].nunique()
+            for tahap in tahapan_funnel
+        }
+
+    segmen_df = pd.DataFrame(funnel_segmen).T.fillna(0).astype(int)
+    st.subheader("🧭 Funnel per Segmen")
+    st.dataframe(segmen_df.style.background_gradient(cmap="PuBuGn"))
 
     # Distribusi Segmen & Status
     st.subheader("📊 Distribusi Segmen & Status Customer")
