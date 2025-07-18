@@ -242,7 +242,7 @@ if page == "🟦 Aktivitas Sales":
 elif page == "🟦 Performansi Sales":
     st.title("🟦 Leaderboard & Performansi Sales")
 
-    # Load hasil performa dari pickle
+    # Load data performa dari pickle utama
     with open("performa_sales.pkl", "rb") as f:
         performa_data = pickle.load(f)
 
@@ -250,23 +250,58 @@ elif page == "🟦 Performansi Sales":
     low_perf = performa_data['low_performers']
     top_sales = performa_data['top_performer']
 
-    st.subheader("📊 Leaderboard Sales (Urutan: Jumlah Deal & Nilai Kontrak)")
-    st.dataframe(sales_perf.reset_index()[[
-        'Nama_Sales' if 'Nama_Sales' in sales_perf.columns else sales_perf.index.name,
-        'Level_Sales', 'Total_Kunjungan', 'Jumlah_Customer', 
-        'Jumlah_Deal', 'Closing_Rate', 'Efektivitas', 
-        'Nilai_Kontrak_Aktual', 'Prospek_Nilai_Kontrak', 
-        'Total_Nilai_Kontrak', 'Rata_Rata_Progress'
-    ]].rename(columns={sales_perf.index.name: 'Nama_Sales'}), use_container_width=True)
+    # ==========================
+    # Leaderboard Efisiensi Waktu
+    # ==========================
 
-    # Visualisasi Ringkasan
-    st.subheader("📈 Visualisasi Ringkasan Kinerja")
+    # Ambil hanya customer yang sampai tahap Paska Deal
+    paska_deal_customers = df[df["Progress"] == "Paska Deal"]["ID_Customer"].unique()
+    df_paska = df[df["ID_Customer"].isin(paska_deal_customers)].copy()
+    df_paska = df_paska.sort_values(["ID_Customer", "Tanggal"])
+
+    # Hitung durasi per customer
+    def get_duration(group):
+        inisiasi_date = group[group["Progress"] == "Inisiasi"]["Tanggal"].min()
+        paska_deal_date = group[group["Progress"] == "Paska Deal"]["Tanggal"].max()
+        if pd.notnull(inisiasi_date) and pd.notnull(paska_deal_date):
+            return pd.Series({
+                "Nama_Sales": group["Nama_Sales"].iloc[0],
+                "Durasi_Proses_Sales (hari)": (paska_deal_date - inisiasi_date).days
+            })
+        else:
+            return pd.Series()
+
+    durasi_per_customer = df_paska.groupby("ID_Customer").apply(get_duration).dropna()
+    durasi_per_sales = durasi_per_customer.groupby("Nama_Sales")["Durasi_Proses_Sales (hari)"].mean()
+
+    leaderboard_durasi = durasi_per_sales.reset_index().rename(columns={
+        "Nama_Sales": "Sales",
+        "Durasi_Proses_Sales (hari)": "Rata-rata Durasi (hari)"
+    })
+    leaderboard_durasi["Rank"] = leaderboard_durasi["Rata-rata Durasi (hari)"].rank(method="min").astype(int)
+    leaderboard_durasi = leaderboard_durasi.sort_values("Rank").reset_index(drop=True)
+
+    best_sales = leaderboard_durasi.iloc[0]["Sales"]
+    best_duration = leaderboard_durasi.iloc[0]["Rata-rata Durasi (hari)"]
+
+    # ==========================
+    # Tampilkan Leaderboard Utama
+    # ==========================
+
+    st.subheader("📊 Leaderboard Performa Sales (Deal, Kontrak, Closing Rate)")
+    st.dataframe(
+        sales_perf.reset_index().rename(columns={sales_perf.index.name: 'Nama_Sales'}),
+        use_container_width=True
+    )
+
+    # Visualisasi performa
     col1, col2 = st.columns(2)
 
     with col1:
         st.markdown("**Jumlah Kunjungan vs Jumlah Deal**")
         fig1 = px.bar(
-            sales_perf.reset_index(), x='Nama_Sales',
+            sales_perf.reset_index(),
+            x='Nama_Sales',
             y=['Total_Kunjungan', 'Jumlah_Deal'],
             barmode='group',
             color_discrete_sequence=px.colors.sequential.Teal
@@ -276,8 +311,11 @@ elif page == "🟦 Performansi Sales":
     with col2:
         st.markdown("**Closing Rate per Sales**")
         fig2 = px.bar(
-            sales_perf.reset_index(), x='Nama_Sales', y='Closing_Rate',
-            color='Closing_Rate', color_continuous_scale='BuGn',
+            sales_perf.reset_index(),
+            x='Nama_Sales',
+            y='Closing_Rate',
+            color='Closing_Rate',
+            color_continuous_scale='BuGn',
             labels={'Closing_Rate': 'Closing Rate (%)'}
         )
         st.plotly_chart(fig2, use_container_width=True)
@@ -293,21 +331,44 @@ elif page == "🟦 Performansi Sales":
     )
     st.plotly_chart(fig3, use_container_width=True)
 
-    # Highlight: Sales Terbaik
-    st.success(f"🏆 **Top Performer:** {top_sales}")
+    # ==========================
+    # Tampilkan Leaderboard Efisiensi Waktu
+    # ==========================
+    st.subheader("⏱️ Leaderboard Efisiensi Proses (Dari Inisiasi ke Deal)")
 
-    # 🔍 Sales yang perlu pendampingan
-    if not low_perf.empty:
-        st.warning("⚠️ **Sales yang membutuhkan pendampingan:**")
-        st.dataframe(low_perf[['Total_Kunjungan', 'Closing_Rate']].reset_index(), use_container_width=True)
-        st.markdown("""
-            <div style="background-color:#fff8e1;padding:1rem;border-left:5px solid orange;margin-top:1rem;">
-                <b>Catatan:</b><br>
-                Sales ini memiliki frekuensi kunjungan yang tinggi namun tingkat closing rate yang masih rendah. Perlu dilakukan evaluasi pendekatan dan materi presentasi.
-            </div>
+    st.dataframe(leaderboard_durasi, use_container_width=True)
+
+    fig4 = px.bar(
+        leaderboard_durasi,
+        y='Sales',
+        x='Rata-rata Durasi (hari)',
+        orientation='h',
+        title="Kecepatan Proses Sales: Inisiasi ke Paska Deal",
+        color='Rata-rata Durasi (hari)',
+        color_continuous_scale='Greens',
+        height=450
+    )
+    fig4.update_layout(yaxis=dict(categoryorder='total ascending'))
+    st.plotly_chart(fig4, use_container_width=True)
+
+    st.success(f"🏆 Sales tercepat: **{best_sales}** dengan rata-rata proses hanya **{best_duration:.1f} hari**.")
+    st.info(f"""
+        Sales ini dapat dijadikan role model atau mentor.
+        <br>
+        <b>Insight:</b> Efisiensi waktu bisa sangat berpengaruh terhadap peluang closing.
         """, unsafe_allow_html=True)
+
+    # ==========================
+    # Pendampingan
+    # ==========================
+    st.subheader("🚩 Sales yang Membutuhkan Pendampingan")
+
+    if not low_perf.empty:
+        st.warning("⚠️ Ditemukan beberapa sales dengan aktivitas tinggi namun konversi rendah:")
+        st.dataframe(low_perf[['Total_Kunjungan', 'Closing_Rate']].reset_index(), use_container_width=True)
     else:
-        st.info("✅ Tidak ada sales yang masuk kategori pendampingan saat ini.")
+        st.success("Tidak ada sales yang perlu pendampingan berdasarkan kriteria saat ini.")
+
 
     
 
