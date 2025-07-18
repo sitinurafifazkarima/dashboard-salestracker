@@ -86,42 +86,81 @@ if page == "🟦 Overview":
     )
     st.plotly_chart(funnel_fig)
 
-        # 🎯 Analisis Funnel Sales Lanjutan
-    st.subheader("📌 Insight Funnel Sales Tambahan")
+        # 🎯 Analisis Funnel Lanjutan
+    st.subheader("📌 Insight Visual Funnel Sales")
 
     tahapan_funnel = ['Inisiasi', 'Presentasi', 'Penawaran Harga', 'Negosiasi', 'Paska Deal']
-    
-    # Hitung jumlah customer per tahapan funnel
+
+    # Funnel keseluruhan
     funnel_overall = {
         tahap: filtered_df[filtered_df['Progress'] == tahap]['ID_Customer'].nunique()
         for tahap in tahapan_funnel
     }
 
-    # Hitung konversi antar tahap
+    # Konversi antar tahap
     konversi_tahap = {}
     for i in range(len(tahapan_funnel) - 1):
-        current = tahapan_funnel[i]
-        next_ = tahapan_funnel[i + 1]
-        if funnel_overall[current] > 0:
-            konversi = (funnel_overall[next_] / funnel_overall[current]) * 100
-            konversi_tahap[f"{current} → {next_}"] = konversi
+        tahap_now = tahapan_funnel[i]
+        tahap_next = tahapan_funnel[i + 1]
+        val_now = funnel_overall[tahap_now]
+        val_next = funnel_overall[tahap_next]
+        konversi = (val_next / val_now) * 100 if val_now else 0
+        konversi_tahap[f"{tahap_now} → {tahap_next}"] = konversi
 
-    # Identifikasi drop-off terbesar
+    # Drop-off terbesar
     drop_offs = {
         f"{tahapan_funnel[i]} → {tahapan_funnel[i+1]}":
-            funnel_overall[tahapan_funnel[i]] - funnel_overall[tahapan_funnel[i+1]]
+        funnel_overall[tahapan_funnel[i]] - funnel_overall[tahapan_funnel[i+1]]
         for i in range(len(tahapan_funnel) - 1)
     }
     max_drop = max(drop_offs.items(), key=lambda x: x[1])
 
-    # Tampilkan dalam format info box
-    with st.expander("📊 Rincian Konversi Funnel dan Drop-off"):
-        st.markdown("**🔄 Konversi Antar Tahap (%):**")
-        for tahap, persen in konversi_tahap.items():
-            st.markdown(f"- **{tahap}**: {persen:.1f}%")
+    # 1️⃣ Bar Chart - Funnel Jumlah Customer per Tahap
+    bar_funnel = px.bar(
+        x=list(funnel_overall.keys()),
+        y=list(funnel_overall.values()),
+        labels={'x': 'Tahap Funnel', 'y': 'Jumlah Customer'},
+        title="Jumlah Customer per Tahap Funnel",
+        color_discrete_sequence=px.colors.sequential.Teal
+    )
+    st.plotly_chart(bar_funnel, use_container_width=True)
 
-        st.markdown("**⛔ Tahap dengan Drop-off Terbesar:**")
-        st.warning(f"{max_drop[0]} dengan {max_drop[1]} customer drop.")
+    # 2️⃣ Bar Chart - Konversi Antar Tahap
+    konversi_df = pd.DataFrame({
+        'Tahapan': list(konversi_tahap.keys()),
+        'Konversi (%)': list(konversi_tahap.values())
+    })
+    bar_konversi = px.bar(
+        konversi_df, x='Tahapan', y='Konversi (%)',
+        title="Tingkat Konversi Antar Tahapan Funnel",
+        color='Konversi (%)',
+        color_continuous_scale=px.colors.sequential.Mint
+    )
+    st.plotly_chart(bar_konversi, use_container_width=True)
+
+    # 3️⃣ Stacked Bar - Funnel per Segmen
+    funnel_segmen = {}
+    for seg in filtered_df['Segmen'].dropna().unique():
+        df_seg = filtered_df[filtered_df['Segmen'] == seg]
+        funnel_segmen[seg] = {
+            tahap: df_seg[df_seg['Progress'] == tahap]['ID_Customer'].nunique()
+            for tahap in tahapan_funnel
+        }
+
+    df_segmen_funnel = pd.DataFrame(funnel_segmen).T.fillna(0).astype(int)
+    df_segmen_funnel = df_segmen_funnel.reset_index().melt(id_vars='index', var_name='Tahapan', value_name='Jumlah')
+    df_segmen_funnel = df_segmen_funnel.rename(columns={'index': 'Segmen'})
+
+    fig_stacked = px.bar(
+        df_segmen_funnel, x='Segmen', y='Jumlah',
+        color='Tahapan', barmode='stack',
+        title="Distribusi Funnel per Segmen",
+        color_discrete_sequence=px.colors.sequential.BuGn
+    )
+    st.plotly_chart(fig_stacked, use_container_width=True)
+
+    # ℹ️ Insight drop-off
+    st.info(f"🔻 Drop-off terbesar terjadi di tahap **{max_drop[0]}**, sebanyak **{max_drop[1]} customer** tidak lanjut ke tahap berikutnya.")
 
     # Analisis Funnel per Segmen
     funnel_segmen = {}
