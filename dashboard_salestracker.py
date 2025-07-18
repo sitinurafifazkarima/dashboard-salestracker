@@ -2,10 +2,15 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from datetime import datetime
+import numpy as np
 
 # Load data
 df = pd.read_csv("sales_visits_finalbgt_enriched.csv")
 df['Tanggal'] = pd.to_datetime(df['Tanggal'])
+
+# Progress mapping
+progress_map = {'Inisiasi': 1, 'Presentasi': 2, 'Penawaran Harga': 3, 'Negosiasi': 4, 'Paska Deal': 5}
+df['Progress_Score'] = df['Progress'].map(progress_map)
 
 # Sidebar filters
 st.sidebar.header("Filter Data")
@@ -23,123 +28,150 @@ filtered_df = df[
     (df['Status_Customer'].isin(status_cust))
 ]
 
-# Navigasi halaman
-page = st.sidebar.selectbox("Pilih Halaman", ["📊 Overview", "🔁 Funnel & Konversi", "👤 Profil Sales"])
+# Halaman navigasi
+page = st.sidebar.radio("Pilih Halaman", ["🟦 Overview", "🟦 Funnel & Konversi", "🟦 Profil Sales"])
 
-if page == "📊 Overview":
+if page == "🟦 Overview":
     st.title("SalesLens 360 – Aktivitas & Kinerja Tim Sales")
 
-    # KPI Cards
+    # KPI Ringkasan
     col1, col2, col3, col4, col5 = st.columns(5)
     with col1:
         total_cust = filtered_df['ID_Customer'].nunique()
         st.metric("Customer Aktif", total_cust)
-        st.caption("⬤ Banyak customer yang sedang dijalankan")
+        st.caption("Progress rata-rata stagnan di tahap 3")
     with col2:
         total_visit = filtered_df.shape[0]
         st.metric("Total Kunjungan", total_visit)
-        st.caption("⬤ Intensitas kunjungan cukup tinggi")
+        st.caption("Frekuensi kunjungan cukup stabil")
     with col3:
         total_kontrak = filtered_df['Nilai_Kontrak'].sum()
-        st.metric("Nilai Kontrak", f"Rp {total_kontrak/1e6:.1f} Juta")
-        st.caption("⬤ Potensi nilai proyek saat ini")
+        st.metric("Total Nilai Kontrak", f"Rp {total_kontrak/1e6:.0f} Juta")
+        st.caption("Nilai potensi proyek")
     with col4:
-        deal = filtered_df[filtered_df['Progress'] == 'Paska Deal']['ID_Customer'].nunique()
-        percent = (deal / total_cust * 100) if total_cust else 0
-        st.metric("Customer Deal", f"{deal} ({percent:.1f}%)")
-        st.caption("⬤ Tingkat closing sementara")
+        deal_count = filtered_df[filtered_df['Progress'] == 'Paska Deal']['ID_Customer'].nunique()
+        deal_percent = (deal_count / total_cust * 100) if total_cust else 0
+        st.metric("Customer Deal", f"{deal_count} ({deal_percent:.0f}%)")
+        st.caption("Konversi ke deal")
     with col5:
-        progress_map = {'Inisiasi': 1, 'Presentasi': 2, 'Penawaran Harga': 3, 'Negosiasi': 4, 'Paska Deal': 5}
-        progress_val = filtered_df['Progress'].map(progress_map).mean()
-        st.metric("Progress Funnel", f"{progress_val:.1f} / 5")
-        st.caption("⬤ Rata-rata tahap berjalan")
+        avg_progress = filtered_df['Progress_Score'].mean()
+        st.metric("Rata-rata Progress", f"{avg_progress:.1f} / 5")
+        st.caption("Tahapan funnel rata-rata")
 
-    # Funnel Chart
-    st.subheader("Funnel Aktivitas Sales")
-    funnel_counts = filtered_df['Progress'].value_counts().reindex(progress_map.keys())
-    funnel_fig = px.funnel_area(names=funnel_counts.index, values=funnel_counts.values,
-                                title="Jumlah Customer di Tiap Tahap", color_discrete_sequence=px.colors.sequential.Teal)
+    # Funnel Aktivitas
+    st.subheader("📉 Funnel Aktivitas Sales")
+    funnel = filtered_df['Progress'].value_counts().reindex(progress_map.keys(), fill_value=0)
+    funnel_fig = px.funnel_area(
+        names=funnel.index,
+        values=funnel.values,
+        title="Funnel Aktivitas Berdasarkan Tahapan",
+        color_discrete_sequence=px.colors.sequential.Teal_r
+    )
     st.plotly_chart(funnel_fig)
 
-    # Trend Aktivitas Waktu
-    st.subheader("Trend Kunjungan Mingguan")
-    trend_df = filtered_df.copy()
-    trend_df['Minggu'] = trend_df['Tanggal'].dt.to_period("W").astype(str)
-    kunjungan_per_week = trend_df.groupby('Minggu').size().reset_index(name='Kunjungan')
-    kontrak_per_week = trend_df.groupby('Minggu')['Nilai_Kontrak'].sum().reset_index()
-    trend = pd.merge(kunjungan_per_week, kontrak_per_week, on='Minggu')
-    trend_fig = px.line(trend, x='Minggu', y='Kunjungan', markers=True, title="Jumlah Kunjungan per Minggu")
-    trend_fig.add_bar(x=trend['Minggu'], y=trend['Nilai_Kontrak'], name="Nilai Kontrak", marker_color="#9AD0EC")
-    st.plotly_chart(trend_fig)
+    # Trend Mingguan
+    st.subheader("📈 Trend Aktivitas Mingguan")
+    filtered_df['Week'] = filtered_df['Tanggal'].dt.to_period("W").astype(str)
+    kunjungan = filtered_df.groupby('Week').size().reset_index(name='Kunjungan')
+    nilai_kontrak = filtered_df.groupby('Week')['Nilai_Kontrak'].sum().reset_index(name='Kontrak')
+    trend_df = pd.merge(kunjungan, nilai_kontrak, on='Week')
+    fig_trend = px.line(trend_df, x='Week', y='Kunjungan', markers=True, title="Kunjungan per Minggu")
+    fig_trend.add_bar(x=trend_df['Week'], y=trend_df['Kontrak'], name="Nilai Kontrak",
+                      marker_color='lightblue')
+    st.plotly_chart(fig_trend)
 
-    # Distribusi Segmen dan Status
-    st.subheader("Distribusi Segmen & Status Customer")
+    # Distribusi Segmen & Status
+    st.subheader("📊 Distribusi Segmen & Status Customer")
     col1, col2 = st.columns(2)
     with col1:
-        pie_seg = px.pie(filtered_df, names='Segmen', title="Distribusi Segmen",
-                         color_discrete_sequence=px.colors.sequential.Blues)
-        st.plotly_chart(pie_seg)
+        seg_fig = px.pie(filtered_df, names='Segmen', title='Distribusi Segmen',
+                         color_discrete_sequence=px.colors.sequential.Blues_r)
+        st.plotly_chart(seg_fig)
     with col2:
-        pie_stat = px.pie(filtered_df, names='Status_Customer', title="Status Customer",
+        stat_fig = px.pie(filtered_df, names='Status_Customer', title='Status Customer',
                           color_discrete_sequence=px.colors.sequential.Greens)
-        st.plotly_chart(pie_stat)
+        st.plotly_chart(stat_fig)
 
-    # Heatmap Segmen vs Progress
-    st.subheader("Heatmap Segmen vs Tahap Tertinggi")
-    heat_data = pd.crosstab(filtered_df['Segmen'], filtered_df['Progress'])
-    st.dataframe(heat_data.style.background_gradient(cmap='YlGnBu'))
+    st.subheader("Heatmap Segmen vs Tahapan")
+    heatmap_df = pd.crosstab(filtered_df['Segmen'], filtered_df['Progress'])
+    st.dataframe(heatmap_df.style.background_gradient(cmap="BuGn"))
 
-elif page == "🔁 Funnel & Konversi":
-    st.title("Sales Funnel & Konversi Detail")
-    
+elif page == "🟦 Funnel & Konversi":
+    st.title("Funnel & Konversi Detail")
+
     # Funnel per Sales
-    st.subheader("Perbandingan Funnel per Sales")
+    st.subheader("Funnel Komparatif per Sales")
     funnel_sales = filtered_df.groupby(['Nama_Sales', 'Progress']).size().reset_index(name='Jumlah')
-    funnel_sales_fig = px.bar(funnel_sales, x='Progress', y='Jumlah', color='Nama_Sales', barmode='group',
-                              color_discrete_sequence=px.colors.qualitative.Pastel, title="Funnel per Sales")
-    st.plotly_chart(funnel_sales_fig)
+    fig = px.bar(funnel_sales, x='Progress', y='Jumlah', color='Nama_Sales', barmode='group',
+                 color_discrete_sequence=px.colors.sequential.Mint_r)
+    st.plotly_chart(fig)
 
     # Durasi Konversi
     st.subheader("Durasi vs Nilai Kontrak")
-    durasi_df = filtered_df.sort_values(by=['ID_Customer', 'Tanggal'])
-    durasi_df = durasi_df.groupby('ID_Customer').agg({
-        'Tanggal': ['min', 'max'],
-        'Nilai_Kontrak': 'max',
-        'Nama_Sales': 'first'
-    })
-    durasi_df.columns = ['Start', 'End', 'Nilai_Kontrak', 'Nama_Sales']
-    durasi_df['Durasi (Hari)'] = (durasi_df['End'] - durasi_df['Start']).dt.days
-    durasi_fig = px.scatter(durasi_df, x='Durasi (Hari)', y='Nilai_Kontrak', color='Nama_Sales',
-                            title="Durasi Konversi vs Nilai", color_discrete_sequence=px.colors.sequential.RdBu)
-    st.plotly_chart(durasi_fig)
+    durasi = filtered_df.groupby('ID_Customer').agg(
+        Sales=('Nama_Sales', 'first'),
+        Start=('Tanggal', 'min'),
+        End=('Tanggal', 'max'),
+        Kontrak=('Nilai_Kontrak', 'max')
+    ).reset_index()
+    durasi['Durasi'] = (durasi['End'] - durasi['Start']).dt.days
+    scatter_fig = px.scatter(durasi, x='Durasi', y='Kontrak', color='Sales',
+                             title='Durasi Inisiasi → Deal vs Nilai Kontrak',
+                             color_discrete_sequence=px.colors.sequential.RdBu_r)
+    st.plotly_chart(scatter_fig)
 
-elif page == "👤 Profil Sales":
+    # Jeda antar kunjungan
+    st.subheader("Rata-rata Jeda antar Kunjungan")
+    jeda_df = filtered_df.sort_values(['ID_Customer', 'Tanggal'])
+    jeda_df['Prev'] = jeda_df.groupby('ID_Customer')['Tanggal'].shift()
+    jeda_df['Jeda_Hari'] = (jeda_df['Tanggal'] - jeda_df['Prev']).dt.days
+    jeda_summary = jeda_df.groupby('Nama_Sales')['Jeda_Hari'].mean().reset_index()
+    bar_jeda = px.bar(jeda_summary, x='Nama_Sales', y='Jeda_Hari', title="Jeda Rata-rata (Hari) per Sales",
+                      color='Nama_Sales', color_discrete_sequence=px.colors.sequential.Plasma_r)
+    st.plotly_chart(bar_jeda)
+
+    # Timeline Journey
+    st.subheader("Customer Journey Map")
+    timeline = px.timeline(filtered_df, x_start='Tanggal', x_end='Tanggal', y='Nama_Customer', color='Progress',
+                           hover_data=['Catatan', 'Jenis_Kunjungan'], color_discrete_sequence=px.colors.qualitative.Vivid)
+    st.plotly_chart(timeline)
+
+elif page == "🟦 Profil Sales":
     st.title("Profil Individu Sales")
-    sales_selected = st.selectbox("Pilih Nama Sales", df['Nama_Sales'].unique())
-    df_sales = filtered_df[filtered_df['Nama_Sales'] == sales_selected]
+    nama = st.selectbox("Pilih Sales", options=df['Nama_Sales'].unique())
+    data_sales = filtered_df[filtered_df['Nama_Sales'] == nama]
 
-    st.subheader("Ringkasan Sales")
+    st.subheader("👤 Ringkasan Profil Sales")
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("Level", df_sales['Level_Sales'].iloc[0])
+        st.metric("Nama", nama)
+        st.metric("Level", data_sales['Level_Sales'].iloc[0])
     with col2:
-        st.metric("Jumlah Kunjungan", df_sales.shape[0])
+        st.metric("Kunjungan", data_sales.shape[0])
+        st.metric("Customer", data_sales['ID_Customer'].nunique())
     with col3:
-        st.metric("Customer Unik", df_sales['ID_Customer'].nunique())
+        deal = data_sales[data_sales['Progress'] == 'Paska Deal']['ID_Customer'].nunique()
+        st.metric("Jumlah Deal", deal)
+        st.metric("Rata-rata Progress", f"{data_sales['Progress_Score'].mean():.1f} / 5")
 
-    st.metric("Rata-rata Progress", df_sales['Progress'].map(progress_map).mean())
+    # Rata-rata durasi closing
+    closing_df = data_sales.groupby('ID_Customer').agg(
+        Start=('Tanggal', 'min'), End=('Tanggal', 'max')).reset_index()
+    closing_df['Durasi'] = (closing_df['End'] - closing_df['Start']).dt.days
+    st.metric("Rata-rata Durasi Closing", f"{closing_df['Durasi'].mean():.0f} Hari")
 
-    # Timeline Kunjungan
-    st.subheader("Timeline Kunjungan")
-    timeline_fig = px.timeline(df_sales, x_start='Tanggal', x_end='Tanggal', y='Nama_Customer',
-                               color='Progress', hover_data=['Jenis_Kunjungan', 'Catatan'],
-                               color_discrete_sequence=px.colors.qualitative.Set2)
-    st.plotly_chart(timeline_fig)
+    # Timeline Vertikal
+    st.subheader("📅 Timeline Kunjungan")
+    timeline2 = px.timeline(data_sales, x_start='Tanggal', x_end='Tanggal', y='Kunjungan_Ke', color='Progress',
+                            hover_data=['Jenis_Kunjungan', 'Catatan'],
+                            color_discrete_sequence=px.colors.qualitative.Prism)
+    st.plotly_chart(timeline2)
 
-    # Distribusi Aktivitas
-    st.subheader("Distribusi Jenis Kunjungan")
-    aktivitas_fig = px.pie(df_sales, names='Jenis_Kunjungan', title="Distribusi Aktivitas Sales",
-                           color_discrete_sequence=px.colors.sequential.PuBu)
-    st.plotly_chart(aktivitas_fig)
+    # Jenis Aktivitas
+    st.subheader("🔄 Distribusi Jenis Aktivitas")
+    aktivitas = px.pie(data_sales, names='Jenis_Kunjungan', title='Distribusi Aktivitas',
+                       color_discrete_sequence=px.colors.sequential.BuGn_r)
+    st.plotly_chart(aktivitas)
 
-    st.info("\n\n🧠 Rekomendasi AI: \n- Perkuat dokumentasi kunjungan yang membawa deal\n- Berpotensi jadi mentor EAM baru")
+    st.subheader("📘 Rekomendasi Pribadi")
+    st.info("\n- Perkuat dokumentasi kunjungan yang membawa deal.\n- Berpotensi jadi mentor EAM baru.")
