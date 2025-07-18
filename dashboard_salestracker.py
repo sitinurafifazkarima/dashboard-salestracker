@@ -115,16 +115,6 @@ if page == "🟦 Overview":
     }
     max_drop = max(drop_offs.items(), key=lambda x: x[1])
 
-    # 1️⃣ Bar Chart - Funnel Jumlah Customer per Tahap
-    bar_funnel = px.bar(
-        x=list(funnel_overall.keys()),
-        y=list(funnel_overall.values()),
-        labels={'x': 'Tahap Funnel', 'y': 'Jumlah Customer'},
-        title="Jumlah Customer per Tahap Funnel",
-        color_discrete_sequence=px.colors.sequential.Teal
-    )
-    st.plotly_chart(bar_funnel, use_container_width=True)
-
     # 2️⃣ Bar Chart - Konversi Antar Tahap
     konversi_df = pd.DataFrame({
         'Tahapan': list(konversi_tahap.keys()),
