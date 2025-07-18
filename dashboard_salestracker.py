@@ -408,9 +408,12 @@ elif page == "🟦 Performansi Sales":
     
 
 elif page == "🟦 Profil Sales":
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+
     st.title("🟦 Profil Individu Sales")
-    nama = st.selectbox("Pilih Sales", options=df['Nama_Sales'].unique())
-    data_sales = filtered_df[filtered_df['Nama_Sales'] == nama]
+    nama = st.selectbox("Pilih Sales", options=filtered_df['Nama_Sales'].unique())
+    data_sales = filtered_df[filtered_df['Nama_Sales'] == nama].sort_values(['ID_Customer', 'Tanggal'])
 
     st.subheader("👤 Ringkasan Profil Sales")
     col1, col2, col3 = st.columns(3)
@@ -426,26 +429,105 @@ elif page == "🟦 Profil Sales":
         st.metric("Rata-rata Progress", f"{data_sales['Progress_Score'].mean():.1f} / 5")
 
     # Rata-rata durasi closing
-    closing_df = data_sales.groupby('ID_Customer').agg(
-        Start=('Tanggal', 'min'), End=('Tanggal', 'max')).reset_index()
+    closing_df = data_sales.groupby('ID_Customer').agg(Start=('Tanggal', 'min'), End=('Tanggal', 'max')).reset_index()
     closing_df['Durasi'] = (closing_df['End'] - closing_df['Start']).dt.days
     st.metric("Rata-rata Durasi Closing", f"{closing_df['Durasi'].mean():.0f} Hari")
 
-    # Timeline Vertikal
-    st.subheader("📅 Timeline Kunjungan")
-    timeline2 = px.timeline(data_sales, x_start='Tanggal', x_end='Tanggal', y='Kunjungan_Ke', color='Progress',
-                            hover_data=['Jenis_Kunjungan', 'Catatan'],
-                            color_discrete_sequence=px.colors.sequential.Mint)
-    st.plotly_chart(timeline2)
+    # Analisis Tambahan Matplotlib
+    st.subheader("📊 Analisis Visual Sales (Advanced)")
 
-    # Jenis Aktivitas
-    st.subheader("🔄 Distribusi Jenis Aktivitas")
-    aktivitas = px.pie(data_sales, names='Jenis_Kunjungan', title='Distribusi Aktivitas',
-                       color_discrete_sequence=px.colors.sequential.BuGn)
-    st.plotly_chart(aktivitas)
+    # Urutan tahapan
+    progress_order = ['Inisiasi', 'Presentasi', 'Penawaran Harga', 'Negosiasi', 'Paska Deal']
+    progress_score_mapping = {p: i + 1 for i, p in enumerate(progress_order)}
+    data_sales['Progress_Score'] = data_sales['Progress'].map(progress_score_mapping)
 
-    st.subheader("📘 Rekomendasi Pribadi")
-    st.info("\n- Perkuat dokumentasi kunjungan yang membawa deal.\n- Berpotensi jadi mentor EAM baru.")
+    timeline = data_sales.groupby('Tanggal').size()
+    distrib_jenis = data_sales['Jenis_Kunjungan'].value_counts()
+    max_stage = data_sales.groupby('ID_Customer')['Progress_Score'].max().mean()
+    top_notes = data_sales['Catatan'].value_counts().head(5)
+
+    funnel_data = {
+        stage: data_sales[data_sales['Progress'] == stage]['ID_Customer'].nunique()
+        for stage in progress_order
+    }
+    funnel_series = pd.Series(funnel_data)
+
+    # Durasi antar tahap
+    stage_durations = []
+    for cust_id, group in data_sales.groupby('ID_Customer'):
+        group = group.sort_values('Tanggal')
+        stage_dates = {}
+        for _, row in group.iterrows():
+            stage = row['Progress']
+            if stage not in stage_dates:
+                stage_dates[stage] = row['Tanggal']
+        for s1, s2 in zip(progress_order[:-1], progress_order[1:]):
+            if s1 in stage_dates and s2 in stage_dates:
+                delta = (stage_dates[s2] - stage_dates[s1]).days
+                if delta >= 0:
+                    stage_durations.append({'From': s1, 'To': s2, 'Days': delta})
+
+    durasi_df = pd.DataFrame(stage_durations)
+    avg_durasi = durasi_df.groupby(['From', 'To'])['Days'].mean().reset_index()
+
+    # Plotting
+    fig, axs = plt.subplots(2, 3, figsize=(18, 10))
+    fig.suptitle(f"Analisis Sales: {nama}", fontsize=18)
+
+    # Timeline
+    axs[0, 0].plot(timeline.index, timeline.values)
+    axs[0, 0].set_title('Timeline Kunjungan')
+    axs[0, 0].set_ylabel('Jumlah')
+
+    # Jenis kunjungan
+    distrib_jenis.plot(kind='bar', color='orange', ax=axs[0, 1])
+    axs[0, 1].set_title('Distribusi Jenis Kunjungan')
+    axs[0, 1].tick_params(axis='x', rotation=45)
+
+    # Tahap tertinggi rata-rata
+    axs[0, 2].bar(['Tahap Tertinggi Rata-rata'], [max_stage], color='green')
+    axs[0, 2].set_ylim(0, 5)
+    axs[0, 2].set_title('Rata-rata Tahapan Tertinggi')
+
+    # Top notes
+    top_notes.plot(kind='barh', color='purple', ax=axs[1, 0])
+    axs[1, 0].invert_yaxis()
+    axs[1, 0].set_title('Top 5 Catatan Kunjungan')
+
+    # Funnel
+    funnel_series[progress_order].plot(kind='bar', color='teal', ax=axs[1, 1])
+    axs[1, 1].set_title('Progress Funnel (Customer per Tahap)')
+
+    # Durasi antar tahap
+    if not avg_durasi.empty:
+        sns.barplot(data=avg_durasi, x='From', y='Days', hue='To', palette='Set2', ax=axs[1, 2])
+        axs[1, 2].set_title('Durasi Rata-Rata Antar Tahap')
+        axs[1, 2].set_ylabel('Durasi (hari)')
+    else:
+        axs[1, 2].text(0.5, 0.5, 'Tidak cukup data', ha='center')
+        axs[1, 2].axis('off')
+
+    st.pyplot(fig)
+
+    # Insight tambahan
+    st.subheader("📘 Rekomendasi & Insight Pribadi")
+    st.info(f"- Rata-rata tahap tertinggi per customer: {max_stage:.2f}")
+    penyusutan = [f"{progress_order[i]} → {progress_order[i+1]}: {funnel_series[progress_order[i+1]]}/{funnel_series[progress_order[i]]} customer"
+                  for i in range(len(progress_order) - 1) if funnel_series[progress_order[i]] > 0]
+    for p in penyusutan:
+        st.write("📉", p)
+
+    if not durasi_df.empty:
+        slowest = avg_durasi.sort_values('Days', ascending=False).iloc[0]
+        st.warning(f"⏱️ Transisi terlama rata-rata: {slowest['From']} → {slowest['To']} ({slowest['Days']:.1f} hari)")
+
+    top_catatan = top_notes.idxmax()
+    deal_notes = data_sales[data_sales['Status_Kontrak'] == 'Deal']['Catatan'].value_counts()
+    if not deal_notes.empty:
+        catatan_efektif = deal_notes.idxmax()
+        st.success(f"✅ Catatan efektif saat Deal: “{catatan_efektif}”")
+    else:
+        st.success(f"✅ Catatan paling umum: “{top_catatan}”")
 
 # Halaman Insight & Rekomendasi
 elif page == "🟦 Insight & Rekomendasi":
