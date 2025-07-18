@@ -52,7 +52,7 @@ if page == "🟦 Overview":
     kontrak_summary = overview_data['nilai_kontrak_breakdown']
 
     # KPI Ringkasan
-    col1, col2, col3, col4, col5 = st.columns(5)
+    col1, col2, col3 = st.columns(3)
     with col1:
         total_cust = filtered_df['ID_Customer'].nunique()
         st.metric("Customer Aktif", total_cust)
@@ -65,6 +65,9 @@ if page == "🟦 Overview":
         total_kontrak = filtered_df['Nilai_Kontrak'].sum()
         st.metric("Total Nilai Kontrak", f"Rp {total_kontrak/1e6:.0f} Juta")
         st.caption("Nilai potensi proyek")
+
+# --- Metrik Tambahan (2 kolom tengah) ---
+    col_spacer1, col4, col5, col_spacer2 = st.columns([1, 2, 2, 1])  # center alignment
     with col4:
         deal_count = filtered_df[filtered_df['Progress'] == 'Paska Deal']['ID_Customer'].nunique()
         deal_percent = (deal_count / total_cust * 100) if total_cust else 0
@@ -74,8 +77,9 @@ if page == "🟦 Overview":
         avg_progress = filtered_df['Progress_Score'].mean()
         st.metric("Rata-rata Progress", f"{avg_progress:.1f} / 5")
         st.caption("Tahapan funnel rata-rata")
-
+    
     # Breakdown Nilai Kontrak Terakhir
+
         # Breakdown Nilai Kontrak Terakhir (warna diselaraskan)
     st.subheader("📌 Breakdown Nilai Kontrak (Customer Terakhir)")
     kontrak_labels = [
