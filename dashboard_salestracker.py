@@ -406,136 +406,124 @@ elif page == "🟦 Performansi Sales":
         st.success("✅ Tidak ada sales yang perlu pendampingan berdasarkan kriteria performa saat ini.")
 
     
-
 elif page == "🟦 Profil Sales":
-    st.title("🟦 Profil Sales")
+    import matplotlib.pyplot as plt
+    import seaborn as sns
 
-    # Pilihan sales
-    daftar_sales = df['Nama_Sales'].dropna().unique()
-    selected_sales = st.selectbox("Pilih Sales", sorted(daftar_sales))
+    st.title("🟦 Profil Individu Sales")
+    nama = st.selectbox("Pilih Sales", options=filtered_df['Nama_Sales'].unique())
+    data_sales = filtered_df[filtered_df['Nama_Sales'] == nama].sort_values(['ID_Customer', 'Tanggal'])
 
-    # Filter data
-    data_sales = df[df['Nama_Sales'] == selected_sales]
+    st.subheader("👤 Ringkasan Profil Sales")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Nama", nama)
+        st.metric("Level", data_sales['Level_Sales'].iloc[0])
+    with col2:
+        st.metric("Kunjungan", data_sales.shape[0])
+        st.metric("Customer", data_sales['ID_Customer'].nunique())
+    with col3:
+        deal = data_sales[data_sales['Progress'] == 'Paska Deal']['ID_Customer'].nunique()
+        st.metric("Jumlah Deal", deal)
+        st.metric("Rata-rata Progress", f"{data_sales['Progress_Score'].mean():.1f} / 5")
 
-    if data_sales.empty:
-        st.warning("Tidak ada data untuk sales yang dipilih.")
+    # Rata-rata durasi closing
+    closing_df = data_sales.groupby('ID_Customer').agg(Start=('Tanggal', 'min'), End=('Tanggal', 'max')).reset_index()
+    closing_df['Durasi'] = (closing_df['End'] - closing_df['Start']).dt.days
+    st.metric("Rata-rata Durasi Closing", f"{closing_df['Durasi'].mean():.0f} Hari")
+
+    # Analisis Tambahan Matplotlib
+    st.subheader("📊 Analisis Visual Sales (Advanced)")
+
+    # Urutan tahapan
+    progress_order = ['Inisiasi', 'Presentasi', 'Penawaran Harga', 'Negosiasi', 'Paska Deal']
+    progress_score_mapping = {p: i + 1 for i, p in enumerate(progress_order)}
+    data_sales['Progress_Score'] = data_sales['Progress'].map(progress_score_mapping)
+
+    timeline = data_sales.groupby('Tanggal').size()
+    distrib_jenis = data_sales['Jenis_Kunjungan'].value_counts()
+    max_stage = data_sales.groupby('ID_Customer')['Progress_Score'].max().mean()
+    top_notes = data_sales['Catatan'].value_counts().head(5)
+
+    funnel_data = {
+        stage: data_sales[data_sales['Progress'] == stage]['ID_Customer'].nunique()
+        for stage in progress_order
+    }
+    funnel_series = pd.Series(funnel_data)
+
+    # Durasi antar tahap
+    stage_durations = []
+    for cust_id, group in data_sales.groupby('ID_Customer'):
+        group = group.sort_values('Tanggal')
+        stage_dates = {}
+        for _, row in group.iterrows():
+            stage = row['Progress']
+            if stage not in stage_dates:
+                stage_dates[stage] = row['Tanggal']
+        for s1, s2 in zip(progress_order[:-1], progress_order[1:]):
+            if s1 in stage_dates and s2 in stage_dates:
+                delta = (stage_dates[s2] - stage_dates[s1]).days
+                if delta >= 0:
+                    stage_durations.append({'From': s1, 'To': s2, 'Days': delta})
+
+    durasi_df = pd.DataFrame(stage_durations)
+    avg_durasi = durasi_df.groupby(['From', 'To'])['Days'].mean().reset_index()
+
+    # Plotting
+    fig, axs = plt.subplots(2, 3, figsize=(18, 10))
+    fig.suptitle(f"Analisis Sales: {nama}", fontsize=18)
+
+    # Timeline
+    axs[0, 0].plot(timeline.index, timeline.values)
+    axs[0, 0].set_title('Timeline Kunjungan')
+    axs[0, 0].set_ylabel('Jumlah')
+
+    # Jenis kunjungan
+    distrib_jenis.plot(kind='bar', color='orange', ax=axs[0, 1])
+    axs[0, 1].set_title('Distribusi Jenis Kunjungan')
+    axs[0, 1].tick_params(axis='x', rotation=45)
+
+    # Tahap tertinggi rata-rata
+    axs[0, 2].bar(['Tahap Tertinggi Rata-rata'], [max_stage], color='green')
+    axs[0, 2].set_ylim(0, 5)
+    axs[0, 2].set_title('Rata-rata Tahapan Tertinggi')
+
+    # Top notes
+    top_notes.plot(kind='barh', color='purple', ax=axs[1, 0])
+    axs[1, 0].invert_yaxis()
+    axs[1, 0].set_title('Top 5 Catatan Kunjungan')
+
+    # Funnel
+    funnel_series[progress_order].plot(kind='bar', color='teal', ax=axs[1, 1])
+    axs[1, 1].set_title('Progress Funnel (Customer per Tahap)')
+
+    # Durasi antar tahap
+    if not avg_durasi.empty:
+        sns.barplot(data=avg_durasi, x='From', y='Days', hue='To', palette='Set2', ax=axs[1, 2])
+        axs[1, 2].set_title('Durasi Rata-Rata Antar Tahap')
+        axs[1, 2].set_ylabel('Durasi (hari)')
     else:
-        # Metode analisis performa individu
-        total_kunjungan = len(data_sales)
-        total_kontrak = data_sales['Nilai_Kontrak'].sum()
-        kontrak_aktual = data_sales[data_sales['Progress'] == 'Deal']['Nilai_Kontrak'].sum()
-        kontrak_prospek = data_sales[data_sales['Progress'].isin(['Follow Up', 'Penawaran'])]['Nilai_Kontrak'].sum()
-        kontrak_lost = data_sales[data_sales['Progress'] == 'Lost']['Nilai_Kontrak'].sum()
-        closing_rate = (data_sales['Progress'] == 'Deal').sum() / total_kunjungan * 100
+        axs[1, 2].text(0.5, 0.5, 'Tidak cukup data', ha='center')
+        axs[1, 2].axis('off')
 
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Total Kunjungan", f"{total_kunjungan}")
-        col2.metric("Total Nilai Kontrak", f"Rp {total_kontrak:,.0f}")
-        col3.metric("Closing Rate", f"{closing_rate:.1f}%")
+    st.pyplot(fig)
 
-        col4, col5, col6 = st.columns(3)
-        col4.metric("Kontrak Deal", f"Rp {kontrak_aktual:,.0f}")
-        col5.metric("Kontrak Prospek", f"Rp {kontrak_prospek:,.0f}")
-        col6.metric("Kontrak Lost", f"Rp {kontrak_lost:,.0f}")
+    # Insight tambahan
+    st.subheader("📘 Rekomendasi & Insight Pribadi")
+    st.info(f"- Rata-rata tahap tertinggi per customer: {max_stage:.2f}")
+    penyusutan = [f"{progress_order[i]} → {progress_order[i+1]}: {funnel_series[progress_order[i+1]]}/{funnel_series[progress_order[i]]} customer"
+                  for i in range(len(progress_order) - 1) if funnel_series[progress_order[i]] > 0]
+    for p in penyusutan:
+        st.write("📉", p)
 
-        st.markdown("---")
-        st.subheader("📊 Analisis Visual Sales")
+    if not durasi_df.empty:
+        slowest = avg_durasi.sort_values('Days', ascending=False).iloc[0]
+        st.warning(f"⏱ Transisi terlama rata-rata: {slowest['From']} → {slowest['To']} ({slowest['Days']:.1f} hari)")
 
-        # Timeline kunjungan
-        timeline = data_sales.groupby('Tanggal').size().reset_index(name='Jumlah')
-        fig_timeline = px.line(
-            timeline, x='Tanggal', y='Jumlah',
-            title='Timeline Kunjungan Sales',
-            markers=True,
-            template='plotly_white',
-            line_shape='spline',
-            color_discrete_sequence=['#90caf9']
-        )
-
-        # Distribusi Jenis Kunjungan
-        jenis_counts = data_sales['Jenis_Kunjungan'].value_counts().reset_index()
-        jenis_counts.columns = ['Jenis_Kunjungan', 'Jumlah']
-        fig_jenis = px.bar(
-            jenis_counts, x='Jenis_Kunjungan', y='Jumlah',
-            title='Distribusi Jenis Kunjungan',
-            template='plotly_white',
-            color_discrete_sequence=['#4db6ac']
-        )
-
-        # Funnel progress
-        progress_order = ['Awal', 'Follow Up', 'Penawaran', 'Deal', 'Lost']
-        funnel_data = {
-            stage: data_sales[data_sales['Progress'] == stage]['ID_Customer'].nunique()
-            for stage in progress_order
-        }
-        funnel_df = pd.DataFrame({
-            'Tahap': list(funnel_data.keys()),
-            'Customer': list(funnel_data.values())
-        })
-        fig_funnel = px.bar(
-            funnel_df, x='Tahap', y='Customer',
-            title='Funnel Customer per Tahap',
-            template='plotly_white',
-            color_discrete_sequence=['#9575cd']
-        )
-
-        # Top 5 catatan kunjungan
-        top_notes = data_sales['Catatan'].value_counts().head(5).reset_index()
-        top_notes.columns = ['Catatan', 'Jumlah']
-        fig_catatan = px.bar(
-            top_notes, x='Jumlah', y='Catatan',
-            orientation='h',
-            title='Top 5 Catatan Kunjungan',
-            template='plotly_white',
-            color_discrete_sequence=['#f48fb1']
-        )
-
-        # Durasi antar tahap
-        stage_durations = []
-        for cust_id, group in data_sales.groupby('ID_Customer'):
-            group = group.sort_values('Tanggal')
-            stage_dates = {}
-            for _, row in group.iterrows():
-                stage = row['Progress']
-                if stage not in stage_dates:
-                    stage_dates[stage] = row['Tanggal']
-            for s1, s2 in zip(progress_order[:-1], progress_order[1:]):
-                if s1 in stage_dates and s2 in stage_dates:
-                    delta = (stage_dates[s2] - stage_dates[s1]).days
-                    if delta >= 0:
-                        stage_durations.append({'From': s1, 'To': s2, 'Durasi (hari)': delta})
-
-        durasi_df = pd.DataFrame(stage_durations)
-        if not durasi_df.empty:
-            avg_durasi = durasi_df.groupby(['From', 'To'])['Durasi (hari)'].mean().reset_index()
-            fig_durasi = px.bar(
-                avg_durasi, x='From', y='Durasi (hari)', color='To',
-                title='Durasi Rata-rata Antar Tahap',
-                template='plotly_white',
-                color_discrete_sequence=px.colors.sequential.Teal
-            )
-        else:
-            fig_durasi = None
-
-        # Layout grafik
-        col1, col2 = st.columns(2)
-        col1.plotly_chart(fig_timeline, use_container_width=True)
-        col2.plotly_chart(fig_jenis, use_container_width=True)
-
-        col3, col4 = st.columns(2)
-        col3.plotly_chart(fig_funnel, use_container_width=True)
-        col4.plotly_chart(fig_catatan, use_container_width=True)
-
-        if fig_durasi:
-            st.plotly_chart(fig_durasi, use_container_width=True)
-
-        # Insight
-        st.markdown("---")
-        st.subheader("🧠 Insight Singkat")
-        st.markdown(f"""
-        - **{selected_sales}** telah melakukan total **{total_kunjungan} kunjungan**.
-        - Total nilai kontrak mencapai **Rp {total_kontrak:,.0f}**, dengan closing rate sebesar **{closing_rate:.1f}%**.
-        - Proporsi deal terhadap lost dan prospek menunjukkan bahwa potensi peningkatan dapat dilakukan melalui pendekatan lebih intensif pada tahap **Follow Up** dan **Penawaran**.
-        - Jika terdapat durasi antar tahap yang lama, perlu dilakukan review strategi follow-up.
-        """)
-
+    top_catatan = top_notes.idxmax()
+    deal_notes = data_sales[data_sales['Status_Kontrak'] == 'Deal']['Catatan'].value_counts()
+    if not deal_notes.empty:
+        catatan_efektif = deal_notes.idxmax()
+        st.success(f"✅ Catatan efektif saat Deal: “{catatan_efektif}”")
+    else:
+        st.success(f"✅ Catatan paling umum: “{top_catatan}”")
