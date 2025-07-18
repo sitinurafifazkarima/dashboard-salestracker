@@ -240,119 +240,76 @@ if page == "🟦 Aktivitas Sales":
     st.plotly_chart(fig_gap)
 
 elif page == "🟦 Performansi Sales":
-    st.header("📊 Performa Sales - Leaderboard & Analisis")
+    st.title("🟦 Leaderboard & Performansi Sales")
 
-    # --- Load dataset utama ---
-    @st.cache_data
+    # Load hasil performa dari pickle
+    with open("performa_sales.pkl", "rb") as f:
+        performa_data = pickle.load(f)
 
-    def load_main():
-        with open("performa_sales.pkl", "rb") as f:
-            data = pickle.load(f)
-        return data
+    sales_perf = performa_data['sales_performance']
+    low_perf = performa_data['low_performers']
+    top_sales = performa_data['top_performer']
 
-    data = load_main()
-    sales_df = data['sales_performance']
-    low_perf = data['low_performers']
-    top_sales = data['top_performer']
+    st.subheader("📊 Leaderboard Sales (Urutan: Jumlah Deal & Nilai Kontrak)")
+    st.dataframe(sales_perf.reset_index()[[
+        'Nama_Sales' if 'Nama_Sales' in sales_perf.columns else sales_perf.index.name,
+        'Level_Sales', 'Total_Kunjungan', 'Jumlah_Customer', 
+        'Jumlah_Deal', 'Closing_Rate', 'Efektivitas', 
+        'Nilai_Kontrak_Aktual', 'Prospek_Nilai_Kontrak', 
+        'Total_Nilai_Kontrak', 'Rata_Rata_Progress'
+    ]].rename(columns={sales_perf.index.name: 'Nama_Sales'}), use_container_width=True)
 
-#    --- Visualisasi Performa Leaderboard ---
-    st.subheader("🏆 Leaderboard: Closing Rate & Konversi")
-    fig1 = px.bar(sales_df.reset_index(), 
-              x='Nama_Sales', y=['Total_Kunjungan', 'Jumlah_Deal'], 
-              barmode='group', 
-              color_discrete_sequence=['#90CAF9', '#42A5F5'])
-    fig1.update_layout(title="Total Kunjungan vs Jumlah Deal per Sales")
-    st.plotly_chart(fig1, use_container_width=True)
+    # Visualisasi Ringkasan
+    st.subheader("📈 Visualisasi Ringkasan Kinerja")
+    col1, col2 = st.columns(2)
 
-    fig2 = px.bar(sales_df.reset_index(), x='Nama_Sales', y='Closing_Rate', color='Closing_Rate', 
-              color_continuous_scale='Blues', title="Closing Rate per Sales")
-    st.plotly_chart(fig2, use_container_width=True)
+    with col1:
+        st.markdown("**Jumlah Kunjungan vs Jumlah Deal**")
+        fig1 = px.bar(
+            sales_perf.reset_index(), x='Nama_Sales',
+            y=['Total_Kunjungan', 'Jumlah_Deal'],
+            barmode='group',
+            color_discrete_sequence=px.colors.sequential.Teal
+        )
+        st.plotly_chart(fig1, use_container_width=True)
 
-    fig3 = px.bar(sales_df.reset_index(), 
-              x='Nama_Sales', 
-              y=['Nilai_Kontrak_Aktual', 'Prospek_Nilai_Kontrak'], 
-              barmode='stack', 
-              color_discrete_sequence=['#81C784', '#C8E6C9'],
-              title="Nilai Kontrak Aktual & Prospek")
+    with col2:
+        st.markdown("**Closing Rate per Sales**")
+        fig2 = px.bar(
+            sales_perf.reset_index(), x='Nama_Sales', y='Closing_Rate',
+            color='Closing_Rate', color_continuous_scale='BuGn',
+            labels={'Closing_Rate': 'Closing Rate (%)'}
+        )
+        st.plotly_chart(fig2, use_container_width=True)
+
+    st.markdown("### Nilai Kontrak Aktual vs Prospek")
+    fig3 = px.bar(
+        sales_perf.reset_index(),
+        x='Nama_Sales',
+        y=['Nilai_Kontrak_Aktual', 'Prospek_Nilai_Kontrak'],
+        title='Nilai Kontrak per Sales',
+        barmode='stack',
+        color_discrete_sequence=px.colors.sequential.Mint
+    )
     st.plotly_chart(fig3, use_container_width=True)
 
-# --- Analisis Efisiensi Waktu ---
-    st.subheader("⏱️ Efisiensi Waktu: Inisiasi ke Paska Deal")
+    # Highlight: Sales Terbaik
+    st.success(f"🏆 **Top Performer:** {top_sales}")
 
-# Hitung ulang tanpa bergantung pada file pkl
-    st.info("Menghitung ulang data efisiensi waktu dari dataframe...")
-    df = st.session_state['df']
-    paska_deal_customers = df[df["Progress"] == "Paska Deal"]["ID_Customer"].unique()
-    df_paska = df[df["ID_Customer"].isin(paska_deal_customers)]
-    df_paska = df_paska.sort_values(["ID_Customer", "Tanggal"])
-
-    def get_duration(group):
-        inisiasi_date = group[group["Progress"] == "Inisiasi"]["Tanggal"].min()
-        paska_deal_date = group[group["Progress"] == "Paska Deal"]["Tanggal"].max()
-        if pd.notnull(inisiasi_date) and pd.notnull(paska_deal_date):
-            duration = (paska_deal_date - inisiasi_date).days
-            return pd.Series({
-                "Nama_Sales": group["Nama_Sales"].iloc[0],
-                "Durasi_Proses_Sales (hari)": duration
-            })
-        else:
-            return pd.Series()
-
-    durasi_per_customer = df_paska.groupby("ID_Customer").apply(get_duration).dropna()
-    durasi_per_sales = durasi_per_customer.groupby("Nama_Sales")["Durasi_Proses_Sales (hari)"].mean()
-
-    leaderboard_df = durasi_per_sales.reset_index().rename(columns={
-        "Nama_Sales": "Sales",
-        "Durasi_Proses_Sales (hari)": "Rata-rata Durasi (hari)"
-    })
-    leaderboard_df["Rank"] = leaderboard_df["Rata-rata Durasi (hari)"].rank(method="min").astype(int)
-    leaderboard_df = leaderboard_df.sort_values("Rank").reset_index(drop=True)
-
-    best_sales = leaderboard_df.iloc[0]["Sales"]
-    best_duration = leaderboard_df.iloc[0]["Rata-rata Durasi (hari)"]
-
-    insight = {
-        "sales_tercepat": best_sales,
-        "durasi_rata2": best_duration,
-        "pesan": f"Sales dengan proses tercepat adalah {best_sales} ({best_duration:.1f} hari). Jadikan sebagai mentor dan acuan pola kerja."
-    }
-
-    fig_durasi = px.bar(leaderboard_df, x="Rata-rata Durasi (hari)", y="Sales", orientation="h", 
-                    color='Rata-rata Durasi (hari)', color_continuous_scale='Tealgrn',
-                    title="Kecepatan Proses Sales")
-    fig_durasi.update_layout(yaxis={'categoryorder':'total ascending'})
-    st.plotly_chart(fig_durasi, use_container_width=True)
-
-    st.markdown(f"**📌 Insight:** {insight['pesan']}")
-
-# --- Analisis Ketercapaian Target ---
-    st.subheader("🎯 Ketercapaian Target per Sales")
-
-    if "Target_Sales" in st.session_state['df'].columns:
-        df = st.session_state['df']
-
-        kontrak_per_sales = df[df["Progress"] == "Paska Deal"].groupby("Nama_Sales")["Nilai_Kontrak"].sum().reset_index()
-        kontrak_per_sales.rename(columns={"Nilai_Kontrak": "Total_Kontrak"}, inplace=True)
-
-        target_unique = df[["Nama_Sales", "ID_Customer", "Target_Sales"]].drop_duplicates(subset=["Nama_Sales", "ID_Customer"])
-        target_per_sales = target_unique.groupby("Nama_Sales")["Target_Sales"].sum().reset_index()
-
-        df_target = pd.merge(kontrak_per_sales, target_per_sales, on="Nama_Sales", how="left")
-        df_target["Ketercapaian (%)"] = (df_target["Total_Kontrak"] / df_target["Target_Sales"]) * 100
-        df_target["Rank"] = df_target["Ketercapaian (%)"].rank(method="min", ascending=False).astype(int)
-        df_target = df_target.sort_values("Rank")
-
-        fig_target = px.bar(df_target, x="Ketercapaian (%)", y="Nama_Sales", orientation="h", 
-                        color="Ketercapaian (%)", color_continuous_scale="Blues_r",
-                        title="Ketercapaian Target per Sales")
-        st.plotly_chart(fig_target, use_container_width=True)
-
-        if not df_target.empty:
-            top_sales_target = df_target.iloc[0]
-            st.markdown(f"**📌 Insight:** {top_sales_target['Nama_Sales']} mencapai {top_sales_target['Ketercapaian (%)']:.1f}% dari targetnya. Jadikan contoh pola pendekatannya.")
+    # 🔍 Sales yang perlu pendampingan
+    if not low_perf.empty:
+        st.warning("⚠️ **Sales yang membutuhkan pendampingan:**")
+        st.dataframe(low_perf[['Total_Kunjungan', 'Closing_Rate']].reset_index(), use_container_width=True)
+        st.markdown("""
+            <div style="background-color:#fff8e1;padding:1rem;border-left:5px solid orange;margin-top:1rem;">
+                <b>Catatan:</b><br>
+                Sales ini memiliki frekuensi kunjungan yang tinggi namun tingkat closing rate yang masih rendah. Perlu dilakukan evaluasi pendekatan dan materi presentasi.
+            </div>
+        """, unsafe_allow_html=True)
     else:
-        st.warning("Kolom Target_Sales tidak ditemukan di dataframe. Tidak bisa menghitung ketercapaian.")
+        st.info("✅ Tidak ada sales yang masuk kategori pendampingan saat ini.")
 
+    
 
 elif page == "🟦 Profil Sales":
     st.title("🟦 Profil Individu Sales")
