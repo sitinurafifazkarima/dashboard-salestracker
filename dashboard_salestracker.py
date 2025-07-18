@@ -352,11 +352,13 @@ elif page == "🟦 Performansi Sales":
     st.plotly_chart(fig4, use_container_width=True)
 
     st.success(f"🏆 Sales tercepat: **{best_sales}** dengan rata-rata proses hanya **{best_duration:.1f} hari**.")
-    st.info(f"""
-        Sales ini dapat dijadikan role model atau mentor.
-        <br>
-        <b>Insight:</b> Efisiensi waktu bisa sangat berpengaruh terhadap peluang closing.
+    st.markdown(f"""
+        <div style='background-color:#e8f5e9;padding:1rem;border-radius:10px;margin-top:1rem;border-left:5px solid #388e3c;'>
+        <p><b>Sales ini dapat dijadikan role model atau mentor.</b></p>
+        <p><b>Insight:</b> Efisiensi waktu bisa sangat berpengaruh terhadap peluang closing.</p>
+        </div>
         """, unsafe_allow_html=True)
+
 
     # ==========================
     # Pendampingan
