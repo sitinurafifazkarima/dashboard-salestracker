@@ -161,7 +161,7 @@ elif page == "🟦 Profil Sales":
     st.metric("Rata-rata Durasi Closing", f"{closing_df['Durasi'].mean():.0f} Hari")
 
     # Timeline Vertikal
-    st.subheader("📅 Timeline Kunjungan")
+    st.subheader("🗕️ Timeline Kunjungan")
     timeline2 = px.timeline(data_sales, x_start='Tanggal', x_end='Tanggal', y='Kunjungan_Ke', color='Progress',
                             hover_data=['Jenis_Kunjungan', 'Catatan'],
                             color_discrete_sequence=px.colors.qualitative.Prism)
