@@ -3,6 +3,18 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime
 import numpy as np
+import pickle
+
+# Custom soft & elegant CSS
+st.markdown("""
+    <style>
+    .main {background-color: #f7f9fa;}
+    .block-container {padding-top:2rem;}
+    .stMetric {background: #e3f2fd; border-radius: 10px; box-shadow: 0 2px 8px #e0e0e0;}
+    .stButton>button {background-color: #e3f2fd; color: #333; border-radius: 8px;}
+    .stRadio>div {background: #f0f4f8; border-radius: 8px;}
+    </style>
+""", unsafe_allow_html=True)
 
 # Load data
 df = pd.read_csv("sales_visits_finalbgt_enriched.csv")
@@ -28,11 +40,10 @@ filtered_df = df[
     (df['Status_Customer'].isin(status_cust))
 ]
 
-# Halaman navigasi
-page = st.sidebar.radio("Pilih Halaman", ["🟦 Overview", "🟦 Funnel & Konversi", "🟦 Profil Sales"])
+page = st.sidebar.radio("Pilih Halaman", ["🟦 Overview", "🟦 Funnel & Konversi", "🟦 Profil Sales", "🟦 Insight & Rekomendasi"])
 
 if page == "🟦 Overview":
-    st.title("SalesLens 360 – Aktivitas & Kinerja Tim Sales")
+    st.title("🟦 SalesLens 360 – Aktivitas & Kinerja Tim Sales")
 
     # KPI Ringkasan
     col1, col2, col3, col4, col5 = st.columns(5)
@@ -65,7 +76,7 @@ if page == "🟦 Overview":
         names=funnel.index,
         values=funnel.values,
         title="Funnel Aktivitas Berdasarkan Tahapan",
-        color_discrete_sequence=px.colors.sequential.Teal_r
+        color_discrete_sequence=px.colors.sequential.Teal
     )
     st.plotly_chart(funnel_fig)
 
@@ -75,9 +86,10 @@ if page == "🟦 Overview":
     kunjungan = filtered_df.groupby('Week').size().reset_index(name='Kunjungan')
     nilai_kontrak = filtered_df.groupby('Week')['Nilai_Kontrak'].sum().reset_index(name='Kontrak')
     trend_df = pd.merge(kunjungan, nilai_kontrak, on='Week')
-    fig_trend = px.line(trend_df, x='Week', y='Kunjungan', markers=True, title="Kunjungan per Minggu")
+    fig_trend = px.line(trend_df, x='Week', y='Kunjungan', markers=True, title="Kunjungan per Minggu",
+                        color_discrete_sequence=px.colors.sequential.Mint)
     fig_trend.add_bar(x=trend_df['Week'], y=trend_df['Kontrak'], name="Nilai Kontrak",
-                      marker_color='lightblue')
+                      marker_color='#b2dfdb')
     st.plotly_chart(fig_trend)
 
     # Distribusi Segmen & Status
@@ -85,25 +97,25 @@ if page == "🟦 Overview":
     col1, col2 = st.columns(2)
     with col1:
         seg_fig = px.pie(filtered_df, names='Segmen', title='Distribusi Segmen',
-                         color_discrete_sequence=px.colors.sequential.Blues_r)
+                         color_discrete_sequence=px.colors.sequential.BuGn)
         st.plotly_chart(seg_fig)
     with col2:
         stat_fig = px.pie(filtered_df, names='Status_Customer', title='Status Customer',
-                          color_discrete_sequence=px.colors.sequential.Greens)
+                          color_discrete_sequence=px.colors.sequential.Blues)
         st.plotly_chart(stat_fig)
 
     st.subheader("Heatmap Segmen vs Tahapan")
     heatmap_df = pd.crosstab(filtered_df['Segmen'], filtered_df['Progress'])
-    st.dataframe(heatmap_df.style.background_gradient(cmap="BuGn"))
+    st.dataframe(heatmap_df.style.background_gradient(cmap="PuBuGn"))
 
 elif page == "🟦 Funnel & Konversi":
-    st.title("Funnel & Konversi Detail")
+    st.title("🟦 Funnel & Konversi Detail")
 
     # Funnel per Sales
     st.subheader("Funnel Komparatif per Sales")
     funnel_sales = filtered_df.groupby(['Nama_Sales', 'Progress']).size().reset_index(name='Jumlah')
     fig = px.bar(funnel_sales, x='Progress', y='Jumlah', color='Nama_Sales', barmode='group',
-                 color_discrete_sequence=px.colors.sequential.Mint_r)
+                 color_discrete_sequence=px.colors.sequential.Teal)
     st.plotly_chart(fig)
 
     # Durasi Konversi
@@ -117,7 +129,7 @@ elif page == "🟦 Funnel & Konversi":
     durasi['Durasi'] = (durasi['End'] - durasi['Start']).dt.days
     scatter_fig = px.scatter(durasi, x='Durasi', y='Kontrak', color='Sales',
                              title='Durasi Inisiasi → Deal vs Nilai Kontrak',
-                             color_discrete_sequence=px.colors.sequential.RdBu_r)
+                             color_discrete_sequence=px.colors.sequential.Mint)
     st.plotly_chart(scatter_fig)
 
     # Jeda antar kunjungan
@@ -127,17 +139,17 @@ elif page == "🟦 Funnel & Konversi":
     jeda_df['Jeda_Hari'] = (jeda_df['Tanggal'] - jeda_df['Prev']).dt.days
     jeda_summary = jeda_df.groupby('Nama_Sales')['Jeda_Hari'].mean().reset_index()
     bar_jeda = px.bar(jeda_summary, x='Nama_Sales', y='Jeda_Hari', title="Jeda Rata-rata (Hari) per Sales",
-                      color='Nama_Sales', color_discrete_sequence=px.colors.sequential.Plasma_r)
+                      color='Nama_Sales', color_discrete_sequence=px.colors.sequential.BuGn)
     st.plotly_chart(bar_jeda)
 
     # Timeline Journey
     st.subheader("Customer Journey Map")
     timeline = px.timeline(filtered_df, x_start='Tanggal', x_end='Tanggal', y='Nama_Customer', color='Progress',
-                           hover_data=['Catatan', 'Jenis_Kunjungan'], color_discrete_sequence=px.colors.qualitative.Vivid)
+                           hover_data=['Catatan', 'Jenis_Kunjungan'], color_discrete_sequence=px.colors.sequential.Teal)
     st.plotly_chart(timeline)
 
 elif page == "🟦 Profil Sales":
-    st.title("Profil Individu Sales")
+    st.title("🟦 Profil Individu Sales")
     nama = st.selectbox("Pilih Sales", options=df['Nama_Sales'].unique())
     data_sales = filtered_df[filtered_df['Nama_Sales'] == nama]
 
@@ -164,14 +176,32 @@ elif page == "🟦 Profil Sales":
     st.subheader("📅 Timeline Kunjungan")
     timeline2 = px.timeline(data_sales, x_start='Tanggal', x_end='Tanggal', y='Kunjungan_Ke', color='Progress',
                             hover_data=['Jenis_Kunjungan', 'Catatan'],
-                            color_discrete_sequence=px.colors.qualitative.Prism)
+                            color_discrete_sequence=px.colors.sequential.Mint)
     st.plotly_chart(timeline2)
 
     # Jenis Aktivitas
     st.subheader("🔄 Distribusi Jenis Aktivitas")
     aktivitas = px.pie(data_sales, names='Jenis_Kunjungan', title='Distribusi Aktivitas',
-                       color_discrete_sequence=px.colors.sequential.BuGn_r)
+                       color_discrete_sequence=px.colors.sequential.BuGn)
     st.plotly_chart(aktivitas)
 
     st.subheader("📘 Rekomendasi Pribadi")
     st.info("\n- Perkuat dokumentasi kunjungan yang membawa deal.\n- Berpotensi jadi mentor EAM baru.")
+
+# Halaman Insight & Rekomendasi
+elif page == "🟦 Insight & Rekomendasi":
+    st.title("🟦 Insight & Rekomendasi Otomatis")
+    try:
+        with open("rekomendasi.pkl", "rb") as f:
+            rekom = pickle.load(f)
+        st.subheader("🔍 Insights Utama")
+        for insight in rekom['insights']:
+            st.info(insight)
+        st.subheader("📋 Rekomendasi")
+        for rec in rekom['recommendations']:
+            st.success(rec)
+        st.subheader("✅ To-Do List Prioritas")
+        for todo in rekom['todo_list']:
+            st.warning(todo)
+    except Exception as e:
+        st.error(f"Gagal memuat insight & rekomendasi: {e}")
