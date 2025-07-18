@@ -8,7 +8,7 @@ import pickle
 import streamlit as st
 
 # =======================
-# 📥 DATA LOADING
+# 📅 DATA LOADING
 # =======================
 df = pd.read_csv('sales_visits_finalbgt_enriched.csv')
 df['Tanggal'] = pd.to_datetime(df['Tanggal'])
@@ -19,7 +19,10 @@ df['Tanggal'] = pd.to_datetime(df['Tanggal'])
 st.title("Sales Funnel per Sales")
 
 sales_funnel = df.groupby(['Nama_Sales', 'Progress']).size().unstack(fill_value=0)
-sales_funnel = sales_funnel[['Awal', 'Follow Up', 'Penawaran', 'Negosiasi', 'Paska Deal']]
+
+# Reindex agar semua tahap funnel muncul walau belum ada datanya
+tahapan_funnel = ['Awal', 'Follow Up', 'Penawaran', 'Negosiasi', 'Paska Deal']
+sales_funnel = sales_funnel.reindex(columns=tahapan_funnel, fill_value=0)
 
 st.dataframe(sales_funnel)
 
