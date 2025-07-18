@@ -43,7 +43,13 @@ filtered_df = df[
 page = st.sidebar.radio("Pilih Halaman", ["🟦 Overview", "🟦 Funnel & Konversi", "🟦 Profil Sales", "🟦 Insight & Rekomendasi"])
 
 if page == "🟦 Overview":
-    st.title("🟦 SalesLens 360 – Aktivitas & Kinerja Tim Sales")
+    st.title("🟦 Dashboard Aktivitas & Kinerja Tim Sales")
+
+    # Load metrik ringkasan tambahan dari pickle
+    with open("overview_metrics.pkl", "rb") as f:
+        overview_data = pickle.load(f)
+
+    kontrak_summary = overview_data['nilai_kontrak_breakdown']
 
     # KPI Ringkasan
     col1, col2, col3, col4, col5 = st.columns(5)
@@ -104,6 +110,33 @@ if page == "🟦 Overview":
                           color_discrete_sequence=px.colors.sequential.Blues)
         st.plotly_chart(stat_fig)
 
+    # Breakdown Nilai Kontrak Terakhir
+    st.subheader("📌 Breakdown Nilai Kontrak (Customer Terakhir)")
+    labels = [
+        f"Pendapatan Riil\nRp {kontrak_summary['pendapatan_riil']:,.0f}",
+        f"Prospek (Forecast)\nRp {kontrak_summary['prospek']:,.0f}",
+        f"Lost/Cancel\nRp {kontrak_summary['lost']:,.0f}"
+    ]
+    fig_kontrak = px.pie(
+        names=['Riil', 'Prospek', 'Lost'],
+        values=[kontrak_summary['pendapatan_riil'], kontrak_summary['prospek'], kontrak_summary['lost']],
+        title='Breakdown Nilai Kontrak (Latest per Customer)',
+        color_discrete_sequence=['#4CAF50', '#FFC107', '#F44336'],
+        hole=0.4
+    )
+    fig_kontrak.update_traces(textinfo='percent+label')
+    st.plotly_chart(fig_kontrak)
+
+    st.markdown(f"""
+        <div style='background-color:#e8f5e9;padding:1rem;border-radius:10px;margin-top:1rem;'>
+        <b>📈 Total Nilai Project:</b> Rp {kontrak_summary['total_project']:,.0f}<br>
+        <b>✅ Pendapatan Riil:</b> {kontrak_summary['persen_riil']:.1f}%<br>
+        <b>📊 Prospek:</b> {kontrak_summary['persen_prospek']:.1f}%<br>
+        <b>❌ Lost:</b> {kontrak_summary['persen_lost']:.1f}%
+        </div>
+    """, unsafe_allow_html=True)
+
+    # Heatmap Segmen vs Tahapan
     st.subheader("Heatmap Segmen vs Tahapan")
     heatmap_df = pd.crosstab(filtered_df['Segmen'], filtered_df['Progress'])
     st.dataframe(heatmap_df.style.background_gradient(cmap="PuBuGn"))
