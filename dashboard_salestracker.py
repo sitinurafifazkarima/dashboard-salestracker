@@ -246,7 +246,7 @@ elif page == "🟦 Performansi Sales":
     @st.cache_data
 
     def load_main():
-        with open("performa_sales_closingrate.pkl", "rb") as f:
+        with open("performa_sales.pkl", "rb") as f:
             data = pickle.load(f)
         return data
 
