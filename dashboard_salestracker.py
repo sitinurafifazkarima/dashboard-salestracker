@@ -40,9 +40,9 @@ filtered_df = df[
     (df['Status_Customer'].isin(status_cust))
 ]
 
-page = st.sidebar.radio("Pilih Halaman", ["🟦 Overview", "🟦 Funnel & Konversi", "🟦 Profil Sales", "🟦 Insight & Rekomendasi"])
+page = st.sidebar.radio("Pilih Halaman", ["🟦 Aktivitas Sales", "🟦 Performansi Sales", "🟦 Profil Sales", "🟦 Insight & Rekomendasi"])
 
-if page == "🟦 Overview":
+if page == "🟦 Aktivitas Sales":
     st.title("🟦 Dashboard Aktivitas & Kinerja Tim Sales")
 
     # Load metrik ringkasan tambahan dari pickle
@@ -78,6 +78,18 @@ if page == "🟦 Overview":
         st.metric("Rata-rata Progress", f"{avg_progress:.1f} / 5")
         st.caption("Tahapan funnel rata-rata")
     
+    # Distribusi Segmen & Status
+    st.subheader("📊 Distribusi Segmen & Status Customer")
+    col1, col2 = st.columns(2)
+    with col1:
+        seg_fig = px.pie(filtered_df, names='Segmen', title='Distribusi Segmen',
+                         color_discrete_sequence=px.colors.sequential.BuGn)
+        st.plotly_chart(seg_fig)
+    with col2:
+        stat_fig = px.pie(filtered_df, names='Status_Customer', title='Status Customer',
+                          color_discrete_sequence=px.colors.sequential.Blues)
+        st.plotly_chart(stat_fig)
+
     # Breakdown Nilai Kontrak Terakhir
 
         # Breakdown Nilai Kontrak Terakhir (warna diselaraskan)
@@ -187,36 +199,6 @@ if page == "🟦 Overview":
     # ℹ️ Insight drop-off
     st.info(f"🔻 Drop-off terbesar terjadi di tahap **{max_drop[0]}**, sebanyak **{max_drop[1]} customer** tidak lanjut ke tahap berikutnya.")
 
-    # Distribusi Segmen & Status
-    st.subheader("📊 Distribusi Segmen & Status Customer")
-    col1, col2 = st.columns(2)
-    with col1:
-        seg_fig = px.pie(filtered_df, names='Segmen', title='Distribusi Segmen',
-                         color_discrete_sequence=px.colors.sequential.BuGn)
-        st.plotly_chart(seg_fig)
-    with col2:
-        stat_fig = px.pie(filtered_df, names='Status_Customer', title='Status Customer',
-                          color_discrete_sequence=px.colors.sequential.Blues)
-        st.plotly_chart(stat_fig)
-
-    
-
-    
-
-    # Durasi Konversi
-    st.subheader("Durasi vs Nilai Kontrak")
-    durasi = filtered_df.groupby('ID_Customer').agg(
-        Sales=('Nama_Sales', 'first'),
-        Start=('Tanggal', 'min'),
-        End=('Tanggal', 'max'),
-        Kontrak=('Nilai_Kontrak', 'max')
-    ).reset_index()
-    durasi['Durasi'] = (durasi['End'] - durasi['Start']).dt.days
-    scatter_fig = px.scatter(durasi, x='Durasi', y='Kontrak', color='Sales',
-                             title='Durasi Inisiasi → Deal vs Nilai Kontrak',
-                             color_discrete_sequence=px.colors.sequential.Mint)
-    st.plotly_chart(scatter_fig)
-
     # Jeda antar kunjungan
     st.subheader("Rata-rata Jeda antar Kunjungan")
     jeda_df = filtered_df.sort_values(['ID_Customer', 'Tanggal'])
@@ -257,33 +239,83 @@ if page == "🟦 Overview":
     fig_gap.update_layout(title="Distribusi Jeda antar Kunjungan", xaxis_title="Jeda (hari)", yaxis_title="Frekuensi", template="plotly_white")
     st.plotly_chart(fig_gap)
 
-    # Leaderboard Sales
-    st.subheader("🏆 Leaderboard Sales")
-    sales_performance = filtered_df.groupby('Nama_Sales').agg(
-        Total_Kunjungan=('ID_Customer', 'count'),
-        Total_Nilai_Kontrak=('Nilai_Kontrak', 'sum'),
-        Jumlah_Customer=('ID_Customer', 'nunique')
+elif page == "🟦 Performansi Sales":
+    # --- Load data leaderboard ---
+    with open('performa_sales.pkl', 'rb') as f:
+        performa_data = pickle.load(f)
+
+    sales_performance = performa_data['sales_performance']
+    low_performers = performa_data['low_performers']
+    top_sales = performa_data['top_performer']
+
+    st.header("🏅 Leaderboard Kinerja Sales")
+    st.markdown(f"**Top Performer**: `{top_sales}`")
+
+    # 🔢 Tampilkan tabel leaderboard
+    st.dataframe(
+        sales_performance.reset_index()[[
+            'Nama_Sales',
+            'Total_Kunjungan',
+            'Jumlah_Customer',
+            'Nilai_Kontrak_Aktual',
+            'Prospek_Nilai_Kontrak',
+            'Total_Nilai_Kontrak',
+            'Jumlah_Deal',
+            'Closing_Rate',
+            'Efektivitas',
+            'Rata_Rata_Progress',
+            'Level_Sales'
+        ]].rename(columns={
+            'Nama_Sales': 'Sales',
+            'Jumlah_Deal': 'Deal',
+            'Efektivitas': 'Efektivitas (%)',
+            'Closing_Rate': 'Closing Rate (%)'
+        }),
+        use_container_width=True,
+        height=400
     )
-    deals_per_sales = filtered_df[filtered_df['Progress'] == 'Paska Deal'].groupby('Nama_Sales')['ID_Customer'].nunique()
-    sales_performance['Jumlah_Deal'] = deals_per_sales.fillna(0).astype(int)
-    sales_performance['Closing_Rate'] = (sales_performance['Jumlah_Deal'] / sales_performance['Jumlah_Customer'] * 100).fillna(0).round(2)
-    # Efisiensi waktu: rata-rata durasi closing per sales
-    durasi_sales = filtered_df[filtered_df['Progress'] == 'Paska Deal'].groupby('Nama_Sales').apply(
-        lambda x: (x.groupby('ID_Customer')['Tanggal'].max() - x.groupby('ID_Customer')['Tanggal'].min()).dt.days.mean()
+
+#    🔍 Identifikasi low performer
+    if not low_performers.empty:
+        st.subheader("⚠️ Sales dengan Aktivitas Tinggi namun Konversi Rendah")
+        st.dataframe(low_performers[['Total_Kunjungan', 'Closing_Rate']])
+
+    # 📈 Visualisasi Kinerja Sales
+    st.subheader("📊 Visualisasi Kinerja")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        fig = px.bar(
+            sales_performance,
+            x=sales_performance.index,
+            y=['Total_Kunjungan', 'Jumlah_Deal'],
+            barmode='group',
+            title="Jumlah Kunjungan vs Deal",
+            color_discrete_sequence=px.colors.sequential.Teal
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+    with col2:
+        fig2 = px.bar(
+            sales_performance,
+            x=sales_performance.index,
+            y='Closing_Rate',
+            title="Closing Rate per Sales",
+            color_discrete_sequence=px.colors.sequential.Mint
+        )
+        st.plotly_chart(fig2, use_container_width=True)
+
+# 📊 Kontrak Aktual vs Prospek
+    fig3 = px.bar(
+        sales_performance,
+        x=sales_performance.index,
+        y=['Nilai_Kontrak_Aktual', 'Prospek_Nilai_Kontrak'],
+        title="Nilai Kontrak Aktual vs Prospek",
+        barmode='stack',
+        color_discrete_sequence=px.colors.sequential.Blues
     )
-    sales_performance['Efisiensi_Waktu'] = durasi_sales.round(1)
-    sales_performance['Efisiensi_Waktu'] = sales_performance['Efisiensi_Waktu'].fillna(0)
-    # Ketercapaian target: deal/kunjungan
-    sales_performance['Ketercapaian_Target'] = (sales_performance['Jumlah_Deal'] / sales_performance['Total_Kunjungan'] * 100).fillna(0).round(2)
-    sales_performance = sales_performance.sort_values(['Jumlah_Deal', 'Closing_Rate', 'Ketercapaian_Target'], ascending=False)
-    st.dataframe(sales_performance.style.background_gradient(cmap="PuBuGn"))
-    # Visualisasi leaderboard
-    fig_leader = go.Figure()
-    fig_leader.add_trace(go.Bar(x=sales_performance.index, y=sales_performance['Jumlah_Deal'], name='Jumlah Deal', marker_color='#26a69a'))
-    fig_leader.add_trace(go.Bar(x=sales_performance.index, y=sales_performance['Closing_Rate'], name='Closing Rate (%)', marker_color='#b2dfdb'))
-    fig_leader.add_trace(go.Bar(x=sales_performance.index, y=sales_performance['Ketercapaian_Target'], name='Ketercapaian Target (%)', marker_color='#80cbc4'))
-    fig_leader.update_layout(barmode='group', title="Leaderboard Sales: Deal, Closing Rate, Target", template="plotly_white")
-    st.plotly_chart(fig_leader)
+    st.plotly_chart(fig3, use_container_width=True)
 
 elif page == "🟦 Profil Sales":
     st.title("🟦 Profil Individu Sales")
