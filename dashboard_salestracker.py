@@ -67,7 +67,7 @@ if page == "🏠 Dashboard Utama":
         latest_contracts = filtered_df.sort_values('Tanggal').groupby('ID_Customer').last()
         
         pendapatan_riil = latest_contracts[
-            latest_contracts['Status_Kontrak'] == 'deal'
+            latest_contracts['Status_Kontrak'] == 'Deal'
         ]['Nilai_Kontrak'].sum()
         
         prospek = latest_contracts[
@@ -167,7 +167,7 @@ if page == "🏠 Dashboard Utama":
     <h4>� <b>Catatan Logika Perhitungan:</b></h4>
     <ul>
         <li><b>Nilai Kontrak:</b> Berdasarkan data terbaru per customer (1 customer = 1 nilai kontrak)</li>
-        <li><b>Pendapatan Riil:</b> Status_Kontrak = 'deal' (kontrak sudah ditandatangani)</li>
+        <li><b>Pendapatan Riil:</b> Status_Kontrak = 'Deal' (kontrak sudah ditandatangani)</li>
         <li><b>Prospek:</b> Status_Kontrak = 'Berpotensi Deal' (masih dalam pipeline)</li>
         <li><b>Lost/Cancel:</b> Status_Kontrak = 'Cancel/Batal' (opportunity hilang)</li>
         <li><b>Target Sales:</b> Berdasarkan target terbaru per customer</li>
@@ -294,7 +294,7 @@ if page == "🏠 Dashboard Utama":
 
 elif page == "� Segment Analysis":
     st.title("📊 Segment Analysis - Analisis Mendalam per Segmen")
-    st.markdown("### 🎯 Insight: Optimasi Strategi Segmentasi untuk Meningkatkan ROI")
+    st.markdown("### 🎯 Insight: Optimasi Strategi Segmentasi untuk Meningkatkan Profitabilitas")
     
     # Segment Performance Overview
     st.subheader("🔍 1. Segment Performance Overview")
@@ -310,8 +310,8 @@ elif page == "� Segment Analysis":
         total_visits = len(df_seg)
         total_deals = len(latest_seg[latest_seg['Progress'] == 'Paska Deal'])
         
-        # Nilai kontrak
-        nilai_riil = latest_seg[latest_seg['Status_Kontrak'] == 'deal']['Nilai_Kontrak'].sum()
+        # Nilai kontrak - Fixed: Use 'Deal' instead of 'deal'
+        nilai_riil = latest_seg[latest_seg['Status_Kontrak'] == 'Deal']['Nilai_Kontrak'].sum()
         nilai_prospek = latest_seg[latest_seg['Status_Kontrak'] == 'Berpotensi Deal']['Nilai_Kontrak'].sum()
         target_total = latest_seg['Target_Sales'].sum()
         
@@ -320,9 +320,10 @@ elif page == "� Segment Analysis":
         avg_deal_size = nilai_riil / total_deals if total_deals > 0 else 0
         target_achievement = (nilai_riil / target_total * 100) if target_total > 0 else 0
         
-        # ROI calculation
+        # Efficiency metrics (replacing ROI)
         avg_visits_per_customer = total_visits / total_customer if total_customer > 0 else 0
         revenue_per_visit = nilai_riil / total_visits if total_visits > 0 else 0
+        customer_lifetime_value = nilai_riil / total_customer if total_customer > 0 else 0
         
         segment_metrics[segmen] = {
             'Total_Customer': total_customer,
@@ -335,7 +336,8 @@ elif page == "� Segment Analysis":
             'Avg_Deal_Size': avg_deal_size,
             'Target_Achievement': target_achievement,
             'Avg_Visits_per_Customer': avg_visits_per_customer,
-            'Revenue_per_Visit': revenue_per_visit
+            'Revenue_per_Visit': revenue_per_visit,
+            'Customer_LTV': customer_lifetime_value
         }
     
     segment_df = pd.DataFrame(segment_metrics).T
@@ -364,20 +366,20 @@ elif page == "� Segment Analysis":
         fig_deal_size.update_xaxes(title='Segmen')
         st.plotly_chart(fig_deal_size, use_container_width=True)
     
-    # Segment ROI Analysis
-    st.subheader("💰 2. Segment ROI & Efficiency Analysis")
+    # Segment Efficiency Analysis (replacing ROI)
+    st.subheader("� 2. Segment Efficiency & Profitability Analysis")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        fig_roi = px.scatter(
+        fig_efficiency = px.scatter(
             segment_df.reset_index(), x='Avg_Visits_per_Customer', y='Revenue_per_Visit',
             size='Total_Customer', color='Conversion_Rate',
-            hover_name='index', title='Segment ROI Matrix',
+            hover_name='index', title='Segment Efficiency Matrix',
             labels={'Avg_Visits_per_Customer': 'Avg Visits per Customer', 
                    'Revenue_per_Visit': 'Revenue per Visit (Rp)'}
         )
-        st.plotly_chart(fig_roi, use_container_width=True)
+        st.plotly_chart(fig_efficiency, use_container_width=True)
     
     with col2:
         fig_target = px.bar(
@@ -423,7 +425,8 @@ elif page == "� Segment Analysis":
     
     # Identify best and worst segments
     best_conversion_seg = segment_df['Conversion_Rate'].idxmax()
-    best_roi_seg = segment_df['Revenue_per_Visit'].idxmax()
+    best_efficiency_seg = segment_df['Revenue_per_Visit'].idxmax()
+    best_ltv_seg = segment_df['Customer_LTV'].idxmax()
     worst_conversion_seg = segment_df['Conversion_Rate'].idxmin()
     highest_potential_seg = segment_df['Nilai_Prospek'].idxmax()
     
@@ -432,7 +435,8 @@ elif page == "� Segment Analysis":
         <h4>🏆 <b>Top Performing Segments</b></h4>
         <ul>
             <li>🎯 <b>Highest Conversion:</b> {best_conversion_seg} ({segment_df.loc[best_conversion_seg, 'Conversion_Rate']:.1f}%)</li>
-            <li>💰 <b>Best ROI:</b> {best_roi_seg} (Rp {segment_df.loc[best_roi_seg, 'Revenue_per_Visit']:,.0f} per visit)</li>
+            <li>� <b>Best Efficiency:</b> {best_efficiency_seg} (Rp {segment_df.loc[best_efficiency_seg, 'Revenue_per_Visit']:,.0f} per visit)</li>
+            <li>💰 <b>Highest Customer Value:</b> {best_ltv_seg} (Rp {segment_df.loc[best_ltv_seg, 'Customer_LTV']:,.0f} per customer)</li>
             <li>🚀 <b>Highest Potential:</b> {highest_potential_seg} (Rp {segment_df.loc[highest_potential_seg, 'Nilai_Prospek']/1e6:.1f}M pipeline)</li>
         </ul>
         <p><b>Recommendation:</b> Increase resource allocation to these high-performing segments</p>
@@ -542,7 +546,7 @@ elif page == "🏆 Sales Performance":
         
         # Nilai kontrak berdasarkan logika bisnis yang benar (per customer terbaru)
         nilai_aktual = latest_per_customer[
-            latest_per_customer['Status_Kontrak'] == 'deal'
+            latest_per_customer['Status_Kontrak'] == 'Deal'
         ]['Nilai_Kontrak'].sum()
         
         nilai_prospek = latest_per_customer[
@@ -588,6 +592,27 @@ elif page == "🏆 Sales Performance":
     
     # Display leaderboard
     st.dataframe(performance_df.round(2), use_container_width=True)
+    
+    # Performance visualizations
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        fig_deals = px.bar(
+            performance_df.reset_index(), x='index', y='Jumlah_Deal',
+            title='Number of Deals per Sales Person',
+            color='Jumlah_Deal', color_continuous_scale='Viridis'
+        )
+        fig_deals.update_xaxes(title='Sales Person', tickangle=45)
+        st.plotly_chart(fig_deals, use_container_width=True)
+    
+    with col2:
+        fig_revenue = px.bar(
+            performance_df.reset_index(), x='index', y='Nilai_Aktual',
+            title='Actual Revenue per Sales Person (Rp)',
+            color='Nilai_Aktual', color_continuous_scale='Plasma'
+        )
+        fig_revenue.update_xaxes(title='Sales Person', tickangle=45)
+        st.plotly_chart(fig_revenue, use_container_width=True)
 
     # ==========================
     # 3. AVERAGE HANDLING TIME ANALYSIS
@@ -663,7 +688,7 @@ elif page == "🏆 Sales Performance":
         
         target_segmen = latest_segmen['Target_Sales'].sum()  # Target per customer terbaru
         realisasi_segmen = latest_segmen[
-            latest_segmen['Status_Kontrak'] == 'deal'
+            latest_segmen['Status_Kontrak'] == 'Deal'
         ]['Nilai_Kontrak'].sum()
         
         achievement_segmen = (realisasi_segmen / target_segmen * 100) if target_segmen > 0 else 0
