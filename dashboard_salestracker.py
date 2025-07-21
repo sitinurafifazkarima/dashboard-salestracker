@@ -40,10 +40,19 @@ filtered_df = df[
     (df['Status_Customer'].isin(status_cust))
 ]
 
-page = st.sidebar.radio("Pilih Halaman", ["🟦 Aktivitas Sales", "🟦 Performansi Sales", "🟦 Profil Sales"])
+page = st.sidebar.radio("Pilih Halaman", [
+    "🏠 Dashboard Utama", 
+    "� Segment Analysis", 
+    "🏆 Sales Performance", 
+    "� Progress Analysis",
+    "🔍 Factor Analysis",
+    "📅 Timeline Analysis",
+    "� Profil Sales"
+])
 
-if page == "🟦 Aktivitas Sales":
-    st.title("🟦 Dashboard Aktivitas & Kinerja Tim Sales")
+if page == "🏠 Dashboard Utama":
+    st.title("🏠 Dashboard Aktivitas & Kinerja Tim Sales")
+    st.markdown("### 📋 Ringkasan Eksekutif")
 
 # Load metrik ringkasan tambahan dari pickle
     try:
@@ -58,13 +67,11 @@ if page == "🟦 Aktivitas Sales":
         latest_contracts = filtered_df.sort_values('Tanggal').groupby('ID_Customer').last()
         
         pendapatan_riil = latest_contracts[
-            (latest_contracts['Progress'] == 'Paska Deal') & 
-            (latest_contracts['Status_Kontrak'] == 'deal')
+            latest_contracts['Status_Kontrak'] == 'deal'
         ]['Nilai_Kontrak'].sum()
         
         prospek = latest_contracts[
-            (latest_contracts['Progress'] != 'Paska Deal') & 
-            (latest_contracts['Status_Kontrak'] == 'Berpotensi Deal')
+            latest_contracts['Status_Kontrak'] == 'Berpotensi Deal'
         ]['Nilai_Kontrak'].sum()
         
         lost = latest_contracts[
@@ -152,6 +159,20 @@ if page == "🟦 Aktivitas Sales":
         <b>📊 Prospek:</b> {kontrak_summary['persen_prospek']:.1f}%<br>
         <b>❌ Lost:</b> {kontrak_summary['persen_lost']:.1f}%
         </div>
+    """, unsafe_allow_html=True)
+
+    # Tambahan informasi dan penjelasan logika bisnis
+    st.markdown("""
+    <div style='background-color:#e8f5e9;padding:1rem;border-radius:10px;margin-top:1rem;'>
+    <h4>� <b>Catatan Logika Perhitungan:</b></h4>
+    <ul>
+        <li><b>Nilai Kontrak:</b> Berdasarkan data terbaru per customer (1 customer = 1 nilai kontrak)</li>
+        <li><b>Pendapatan Riil:</b> Status_Kontrak = 'deal' (kontrak sudah ditandatangani)</li>
+        <li><b>Prospek:</b> Status_Kontrak = 'Berpotensi Deal' (masih dalam pipeline)</li>
+        <li><b>Lost/Cancel:</b> Status_Kontrak = 'Cancel/Batal' (opportunity hilang)</li>
+        <li><b>Target Sales:</b> Berdasarkan target terbaru per customer</li>
+    </ul>
+    </div>
     """, unsafe_allow_html=True)
 
     # Funnel Aktivitas
@@ -271,8 +292,167 @@ if page == "🟦 Aktivitas Sales":
     fig_gap.update_layout(title="Distribusi Jeda antar Kunjungan", xaxis_title="Jeda (hari)", yaxis_title="Frekuensi", template="plotly_white")
     st.plotly_chart(fig_gap)
 
-elif page == "🟦 Performansi Sales":
-    st.title("🟦 Dashboard Performansi & Analisis Sales")
+elif page == "� Segment Analysis":
+    st.title("📊 Segment Analysis - Analisis Mendalam per Segmen")
+    st.markdown("### 🎯 Insight: Optimasi Strategi Segmentasi untuk Meningkatkan ROI")
+    
+    # Segment Performance Overview
+    st.subheader("🔍 1. Segment Performance Overview")
+    
+    # Hitung metrik per segmen
+    segment_metrics = {}
+    for segmen in filtered_df['Segmen'].dropna().unique():
+        df_seg = filtered_df[filtered_df['Segmen'] == segmen]
+        latest_seg = df_seg.sort_values('Tanggal').groupby('ID_Customer').last()
+        
+        # Metrik dasar
+        total_customer = df_seg['ID_Customer'].nunique()
+        total_visits = len(df_seg)
+        total_deals = len(latest_seg[latest_seg['Progress'] == 'Paska Deal'])
+        
+        # Nilai kontrak
+        nilai_riil = latest_seg[latest_seg['Status_Kontrak'] == 'deal']['Nilai_Kontrak'].sum()
+        nilai_prospek = latest_seg[latest_seg['Status_Kontrak'] == 'Berpotensi Deal']['Nilai_Kontrak'].sum()
+        target_total = latest_seg['Target_Sales'].sum()
+        
+        # Performance metrics
+        conversion_rate = (total_deals / total_customer * 100) if total_customer > 0 else 0
+        avg_deal_size = nilai_riil / total_deals if total_deals > 0 else 0
+        target_achievement = (nilai_riil / target_total * 100) if target_total > 0 else 0
+        
+        # ROI calculation
+        avg_visits_per_customer = total_visits / total_customer if total_customer > 0 else 0
+        revenue_per_visit = nilai_riil / total_visits if total_visits > 0 else 0
+        
+        segment_metrics[segmen] = {
+            'Total_Customer': total_customer,
+            'Total_Visits': total_visits,
+            'Total_Deals': total_deals,
+            'Nilai_Riil': nilai_riil,
+            'Nilai_Prospek': nilai_prospek,
+            'Target_Total': target_total,
+            'Conversion_Rate': conversion_rate,
+            'Avg_Deal_Size': avg_deal_size,
+            'Target_Achievement': target_achievement,
+            'Avg_Visits_per_Customer': avg_visits_per_customer,
+            'Revenue_per_Visit': revenue_per_visit
+        }
+    
+    segment_df = pd.DataFrame(segment_metrics).T
+    
+    # Display segment metrics table
+    st.dataframe(segment_df.round(2), use_container_width=True)
+    
+    # Visualisasi segment comparison
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        fig_conversion = px.bar(
+            segment_df.reset_index(), x='index', y='Conversion_Rate',
+            title='Conversion Rate per Segmen (%)',
+            color='Conversion_Rate', color_continuous_scale='Viridis'
+        )
+        fig_conversion.update_xaxes(title='Segmen')
+        st.plotly_chart(fig_conversion, use_container_width=True)
+    
+    with col2:
+        fig_deal_size = px.bar(
+            segment_df.reset_index(), x='index', y='Avg_Deal_Size',
+            title='Average Deal Size per Segmen (Rp)',
+            color='Avg_Deal_Size', color_continuous_scale='Plasma'
+        )
+        fig_deal_size.update_xaxes(title='Segmen')
+        st.plotly_chart(fig_deal_size, use_container_width=True)
+    
+    # Segment ROI Analysis
+    st.subheader("💰 2. Segment ROI & Efficiency Analysis")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        fig_roi = px.scatter(
+            segment_df.reset_index(), x='Avg_Visits_per_Customer', y='Revenue_per_Visit',
+            size='Total_Customer', color='Conversion_Rate',
+            hover_name='index', title='Segment ROI Matrix',
+            labels={'Avg_Visits_per_Customer': 'Avg Visits per Customer', 
+                   'Revenue_per_Visit': 'Revenue per Visit (Rp)'}
+        )
+        st.plotly_chart(fig_roi, use_container_width=True)
+    
+    with col2:
+        fig_target = px.bar(
+            segment_df.reset_index(), x='index', y='Target_Achievement',
+            title='Target Achievement per Segmen (%)',
+            color='Target_Achievement', color_continuous_scale='RdYlGn'
+        )
+        fig_target.add_hline(y=100, line_dash="dash", line_color="red")
+        fig_target.update_xaxes(title='Segmen')
+        st.plotly_chart(fig_target, use_container_width=True)
+    
+    # Segment Funnel Analysis
+    st.subheader("� 3. Segment Funnel Performance")
+    
+    tahapan_funnel = ['Inisiasi', 'Presentasi', 'Penawaran Harga', 'Negosiasi', 'Paska Deal']
+    
+    # Hitung funnel per segmen
+    funnel_segmen = {}
+    for segmen in filtered_df['Segmen'].dropna().unique():
+        df_seg = filtered_df[filtered_df['Segmen'] == segmen]
+        funnel_segmen[segmen] = {
+            tahap: df_seg[df_seg['Progress'] == tahap]['ID_Customer'].nunique()
+            for tahap in tahapan_funnel
+        }
+    
+    funnel_seg_df = pd.DataFrame(funnel_segmen).T.fillna(0)
+    
+    # Stacked funnel chart
+    funnel_melt = funnel_seg_df.reset_index().melt(
+        id_vars='index', var_name='Tahapan', value_name='Customer_Count'
+    ).rename(columns={'index': 'Segmen'})
+    
+    fig_funnel_seg = px.bar(
+        funnel_melt, x='Segmen', y='Customer_Count',
+        color='Tahapan', barmode='stack',
+        title='Funnel Distribution per Segmen',
+        color_discrete_sequence=px.colors.sequential.Viridis
+    )
+    st.plotly_chart(fig_funnel_seg, use_container_width=True)
+    
+    # Segment Insights & Recommendations
+    st.subheader("💡 4. Segment Insights & Strategic Recommendations")
+    
+    # Identify best and worst segments
+    best_conversion_seg = segment_df['Conversion_Rate'].idxmax()
+    best_roi_seg = segment_df['Revenue_per_Visit'].idxmax()
+    worst_conversion_seg = segment_df['Conversion_Rate'].idxmin()
+    highest_potential_seg = segment_df['Nilai_Prospek'].idxmax()
+    
+    st.markdown(f"""
+    <div style='background-color:#e8f5e9;padding:1.5rem;border-radius:10px;border-left:5px solid #2e7d32;'>
+        <h4>🏆 <b>Top Performing Segments</b></h4>
+        <ul>
+            <li>🎯 <b>Highest Conversion:</b> {best_conversion_seg} ({segment_df.loc[best_conversion_seg, 'Conversion_Rate']:.1f}%)</li>
+            <li>💰 <b>Best ROI:</b> {best_roi_seg} (Rp {segment_df.loc[best_roi_seg, 'Revenue_per_Visit']:,.0f} per visit)</li>
+            <li>🚀 <b>Highest Potential:</b> {highest_potential_seg} (Rp {segment_df.loc[highest_potential_seg, 'Nilai_Prospek']/1e6:.1f}M pipeline)</li>
+        </ul>
+        <p><b>Recommendation:</b> Increase resource allocation to these high-performing segments</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown(f"""
+    <div style='background-color:#fff3e0;padding:1.5rem;border-radius:10px;border-left:5px solid #f57c00;margin-top:1rem;'>
+        <h4>⚠️ <b>Improvement Opportunities</b></h4>
+        <ul>
+            <li>📉 <b>Lowest Conversion:</b> {worst_conversion_seg} ({segment_df.loc[worst_conversion_seg, 'Conversion_Rate']:.1f}%)</li>
+            <li>🔄 <b>Action Required:</b> Review sales approach and customer needs analysis</li>
+            <li>📈 <b>Optimization Strategy:</b> Implement targeted training and refined value propositions</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
+elif page == "🏆 Sales Performance":
+    st.title("🏆 Sales Performance - Comprehensive Individual Analysis")
+    st.markdown("### 🎯 Insight: Identifikasi Top Performer dan Opportunity untuk Growth")
 
     # Load data performa dari pickle utama
     try:
@@ -360,19 +540,17 @@ elif page == "🟦 Performansi Sales":
         deals = latest_per_customer[latest_per_customer['Progress'] == 'Paska Deal']
         jumlah_deal = len(deals)
         
-        # Nilai kontrak berdasarkan logika bisnis yang benar
+        # Nilai kontrak berdasarkan logika bisnis yang benar (per customer terbaru)
         nilai_aktual = latest_per_customer[
-            (latest_per_customer['Progress'] == 'Paska Deal') & 
-            (latest_per_customer['Status_Kontrak'] == 'deal')
+            latest_per_customer['Status_Kontrak'] == 'deal'
         ]['Nilai_Kontrak'].sum()
         
         nilai_prospek = latest_per_customer[
-            (latest_per_customer['Progress'] != 'Paska Deal') & 
-            (latest_per_customer['Status_Kontrak'] == 'Berpotensi Deal')
+            latest_per_customer['Status_Kontrak'] == 'Berpotensi Deal'
         ]['Nilai_Kontrak'].sum()
         
-        # Target vs realisasi
-        target_total = df_sales['Target_Sales'].sum()  # Total target untuk semua customer
+        # Target vs realisasi (per customer terbaru)
+        target_total = latest_per_customer['Target_Sales'].sum()  # Target per customer terbaru
         realisasi_persen = (nilai_aktual / target_total * 100) if target_total > 0 else 0
         
         # Closing rate
@@ -483,10 +661,9 @@ elif page == "🟦 Performansi Sales":
         df_segmen = filtered_df[filtered_df['Segmen'] == segmen]
         latest_segmen = df_segmen.sort_values('Tanggal').groupby('ID_Customer').last()
         
-        target_segmen = df_segmen['Target_Sales'].sum()
+        target_segmen = latest_segmen['Target_Sales'].sum()  # Target per customer terbaru
         realisasi_segmen = latest_segmen[
-            (latest_segmen['Progress'] == 'Paska Deal') & 
-            (latest_segmen['Status_Kontrak'] == 'deal')
+            latest_segmen['Status_Kontrak'] == 'deal'
         ]['Nilai_Kontrak'].sum()
         
         achievement_segmen = (realisasi_segmen / target_segmen * 100) if target_segmen > 0 else 0
@@ -564,6 +741,7 @@ elif page == "🟦 Performansi Sales":
         
         for tahap in tahapan_funnel:
             customer_in_stage = latest_sales[latest_sales['Progress'] == tahap]
+            # Hanya ambil nilai kontrak untuk customer yang berpotensi deal (belum close/cancel)
             nilai_stage = customer_in_stage[
                 customer_in_stage['Status_Kontrak'] == 'Berpotensi Deal'
             ]['Nilai_Kontrak'].sum()
@@ -744,8 +922,979 @@ elif page == "🟦 Performansi Sales":
         fig4.update_layout(yaxis=dict(categoryorder='total ascending'))
         st.plotly_chart(fig4, use_container_width=True)
 
+elif page == "📈 Progress Analysis":
+    st.title("📈 Progress Analysis - Deep Dive Customer Journey")
+    st.markdown("### 🎯 Insight: Optimasi Customer Journey untuk Meningkatkan Conversion Rate")
     
-elif page == "🟦 Profil Sales":
+    # Progress Distribution Analysis
+    st.subheader("🔍 1. Progress Distribution & Conversion Analysis")
+    
+    tahapan_funnel = ['Inisiasi', 'Presentasi', 'Penawaran Harga', 'Negosiasi', 'Paska Deal']
+    
+    # Current progress distribution
+    current_progress = filtered_df.groupby('ID_Customer')['Progress'].last().value_counts()
+    current_progress = current_progress.reindex(tahapan_funnel, fill_value=0)
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        fig_current = px.pie(
+            values=current_progress.values, names=current_progress.index,
+            title='Current Customer Distribution by Progress',
+            color_discrete_sequence=px.colors.sequential.Viridis
+        )
+        st.plotly_chart(fig_current, use_container_width=True)
+    
+    with col2:
+        # Conversion rates between stages
+        conversion_rates = {}
+        for i in range(len(tahapan_funnel)-1):
+            current_stage = current_progress[tahapan_funnel[i]]
+            next_stage = current_progress[tahapan_funnel[i+1]]
+            conversion = (next_stage / current_stage * 100) if current_stage > 0 else 0
+            conversion_rates[f"{tahapan_funnel[i]} → {tahapan_funnel[i+1]}"] = conversion
+        
+        conv_df = pd.DataFrame(list(conversion_rates.items()), columns=['Transition', 'Rate'])
+        fig_conv = px.bar(
+            conv_df, x='Transition', y='Rate',
+            title='Stage Conversion Rates (%)',
+            color='Rate', color_continuous_scale='RdYlGn'
+        )
+        fig_conv.update_xaxes(tickangle=45)
+        st.plotly_chart(fig_conv, use_container_width=True)
+    
+    # Progress Velocity Analysis
+    st.subheader("⚡ 2. Progress Velocity & Time Analysis")
+    
+    # Calculate average time per stage
+    stage_durations = []
+    for customer_id in filtered_df['ID_Customer'].unique():
+        customer_data = filtered_df[filtered_df['ID_Customer'] == customer_id].sort_values('Tanggal')
+        stages = customer_data['Progress'].unique()
+        
+        for i in range(len(stages)-1):
+            current_stage = stages[i]
+            next_stage = stages[i+1]
+            
+            current_date = customer_data[customer_data['Progress'] == current_stage]['Tanggal'].min()
+            next_date = customer_data[customer_data['Progress'] == next_stage]['Tanggal'].min()
+            
+            if pd.notnull(current_date) and pd.notnull(next_date):
+                duration = (next_date - current_date).days
+                if duration >= 0:
+                    stage_durations.append({
+                        'From_Stage': current_stage,
+                        'To_Stage': next_stage,
+                        'Duration_Days': duration,
+                        'Customer_ID': customer_id
+                    })
+    
+    if stage_durations:
+        duration_df = pd.DataFrame(stage_durations)
+        avg_durations = duration_df.groupby(['From_Stage', 'To_Stage'])['Duration_Days'].agg(['mean', 'median', 'std']).reset_index()
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            fig_duration = px.bar(
+                avg_durations, x='From_Stage', y='mean',
+                title='Average Days per Stage Transition',
+                color='mean', color_continuous_scale='Plasma'
+            )
+            fig_duration.update_xaxes(title='Stage Transition')
+            fig_duration.update_yaxes(title='Average Days')
+            st.plotly_chart(fig_duration, use_container_width=True)
+        
+        with col2:
+            # Stage bottleneck analysis
+            bottleneck_stages = avg_durations.nlargest(3, 'mean')[['From_Stage', 'mean']]
+            fig_bottleneck = px.bar(
+                bottleneck_stages, x='From_Stage', y='mean',
+                title='Top 3 Bottleneck Stages',
+                color='mean', color_continuous_scale='Reds'
+            )
+            st.plotly_chart(fig_bottleneck, use_container_width=True)
+    
+    # Progress Success Patterns
+    st.subheader("🎯 3. Success Pattern Analysis")
+    
+    # Analyze successful vs unsuccessful patterns
+    successful_customers = filtered_df[filtered_df['Progress'] == 'Paska Deal']['ID_Customer'].unique()
+    
+    success_patterns = {}
+    unsuccessful_patterns = {}
+    
+    for customer_id in filtered_df['ID_Customer'].unique():
+        customer_journey = filtered_df[filtered_df['ID_Customer'] == customer_id].sort_values('Tanggal')['Progress'].tolist()
+        journey_str = ' → '.join(customer_journey)
+        
+        if customer_id in successful_customers:
+            success_patterns[journey_str] = success_patterns.get(journey_str, 0) + 1
+        else:
+            unsuccessful_patterns[journey_str] = unsuccessful_patterns.get(journey_str, 0) + 1
+    
+    # Top success patterns
+    top_success = sorted(success_patterns.items(), key=lambda x: x[1], reverse=True)[:5]
+    top_unsuccessful = sorted(unsuccessful_patterns.items(), key=lambda x: x[1], reverse=True)[:5]
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("**🏆 Top 5 Successful Journey Patterns:**")
+        for i, (pattern, count) in enumerate(top_success, 1):
+            st.write(f"{i}. {pattern} ({count} customers)")
+    
+    with col2:
+        st.markdown("**❌ Top 5 Unsuccessful Journey Patterns:**")
+        for i, (pattern, count) in enumerate(top_unsuccessful, 1):
+            st.write(f"{i}. {pattern} ({count} customers)")
+    
+    # Progress Insights & Recommendations
+    st.subheader("💡 4. Progress Insights & Optimization Recommendations")
+    
+    # Calculate key metrics
+    total_customers = filtered_df['ID_Customer'].nunique()
+    successful_customers_count = len(successful_customers)
+    overall_success_rate = (successful_customers_count / total_customers * 100) if total_customers > 0 else 0
+    
+    if stage_durations:
+        longest_stage = avg_durations.loc[avg_durations['mean'].idxmax(), 'From_Stage']
+        avg_longest_duration = avg_durations['mean'].max()
+    else:
+        longest_stage = "N/A"
+        avg_longest_duration = 0
+    
+    st.markdown(f"""
+    <div style='background-color:#e3f2fd;padding:1.5rem;border-radius:10px;border-left:5px solid #1976d2;'>
+        <h4>📊 <b>Key Progress Metrics</b></h4>
+        <ul>
+            <li>📈 <b>Overall Success Rate:</b> {overall_success_rate:.1f}% ({successful_customers_count}/{total_customers} customers)</li>
+            <li>⏳ <b>Biggest Bottleneck:</b> {longest_stage} stage ({avg_longest_duration:.1f} days average)</li>
+            <li>🎯 <b>Optimal Journey:</b> {top_success[0][0] if top_success else 'N/A'}</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown(f"""
+    <div style='background-color:#fff3e0;padding:1.5rem;border-radius:10px;border-left:5px solid #f57c00;margin-top:1rem;'>
+        <h4>🚀 <b>Optimization Recommendations</b></h4>
+        <ol>
+            <li><b>Focus on {longest_stage} Stage:</b> Reduce average duration through process optimization</li>
+            <li><b>Replicate Success Patterns:</b> Train team on most successful customer journey patterns</li>
+            <li><b>Early Intervention:</b> Identify customers following unsuccessful patterns for proactive support</li>
+            <li><b>Stage-Specific Training:</b> Develop targeted training for bottleneck stages</li>
+        </ol>
+    </div>
+    """, unsafe_allow_html=True)
+
+elif page == "🔍 Factor Analysis":
+    st.title("🔍 Factor Analysis - Deep Dive Success Drivers")
+    st.markdown("### 🎯 Insight: Identifikasi Faktor Kunci Keberhasilan Sales")
+    
+    # Customer Profile Analysis
+    st.subheader("👤 1. Customer Profile Success Factors")
+    
+    # Analyze success by customer characteristics
+    latest_customer_data = filtered_df.sort_values('Tanggal').groupby('ID_Customer').last()
+    
+    # Success by Status Customer
+    status_success = latest_customer_data.groupby('Status_Customer').agg({
+        'ID_Customer': 'count',
+        'Progress': lambda x: (x == 'Paska Deal').sum()
+    }).rename(columns={'ID_Customer': 'Total', 'Progress': 'Success'})
+    status_success['Success_Rate'] = (status_success['Success'] / status_success['Total'] * 100)
+    
+    # Success by Segmen
+    segmen_success = latest_customer_data.groupby('Segmen').agg({
+        'ID_Customer': 'count',
+        'Progress': lambda x: (x == 'Paska Deal').sum()
+    }).rename(columns={'ID_Customer': 'Total', 'Progress': 'Success'})
+    segmen_success['Success_Rate'] = (segmen_success['Success'] / segmen_success['Total'] * 100)
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        fig_status = px.bar(
+            status_success.reset_index(), x='Status_Customer', y='Success_Rate',
+            title='Success Rate by Customer Status (%)',
+            color='Success_Rate', color_continuous_scale='Viridis'
+        )
+        st.plotly_chart(fig_status, use_container_width=True)
+    
+    with col2:
+        fig_segmen = px.bar(
+            segmen_success.reset_index(), x='Segmen', y='Success_Rate',
+            title='Success Rate by Segment (%)',
+            color='Success_Rate', color_continuous_scale='Plasma'
+        )
+        st.plotly_chart(fig_segmen, use_container_width=True)
+    
+    # Sales Activity Factors
+    st.subheader("📊 2. Sales Activity Success Factors")
+    
+    # Visit frequency analysis
+    visit_frequency = filtered_df.groupby('ID_Customer').size()
+    customer_success = filtered_df.groupby('ID_Customer')['Progress'].last() == 'Paska Deal'
+    
+    frequency_success = pd.DataFrame({
+        'Visit_Count': visit_frequency,
+        'Success': customer_success
+    })
+    
+    # Categorize visit frequency
+    frequency_success['Frequency_Category'] = pd.cut(
+        frequency_success['Visit_Count'], 
+        bins=[0, 2, 4, 6, float('inf')], 
+        labels=['Low (1-2)', 'Medium (3-4)', 'High (5-6)', 'Very High (7+)']
+    )
+    
+    freq_analysis = frequency_success.groupby('Frequency_Category').agg({
+        'Visit_Count': 'count',
+        'Success': 'sum'
+    }).rename(columns={'Visit_Count': 'Total_Customers', 'Success': 'Successful_Customers'})
+    freq_analysis['Success_Rate'] = (freq_analysis['Successful_Customers'] / freq_analysis['Total_Customers'] * 100)
+    
+    # Visit type analysis
+    visit_type_success = {}
+    for visit_type in filtered_df['Jenis_Kunjungan'].unique():
+        customers_with_type = filtered_df[filtered_df['Jenis_Kunjungan'] == visit_type]['ID_Customer'].unique()
+        success_count = len([c for c in customers_with_type if customer_success.get(c, False)])
+        total_count = len(customers_with_type)
+        visit_type_success[visit_type] = {
+            'Total': total_count,
+            'Success': success_count,
+            'Success_Rate': (success_count / total_count * 100) if total_count > 0 else 0
+        }
+    
+    visit_type_df = pd.DataFrame(visit_type_success).T
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        fig_freq = px.bar(
+            freq_analysis.reset_index(), x='Frequency_Category', y='Success_Rate',
+            title='Success Rate by Visit Frequency (%)',
+            color='Success_Rate', color_continuous_scale='Greens'
+        )
+        st.plotly_chart(fig_freq, use_container_width=True)
+    
+    with col2:
+        fig_type = px.bar(
+            visit_type_df.reset_index(), x='index', y='Success_Rate',
+            title='Success Rate by Visit Type (%)',
+            color='Success_Rate', color_continuous_scale='Blues'
+        )
+        fig_type.update_xaxes(title='Visit Type')
+        st.plotly_chart(fig_type, use_container_width=True)
+    
+    # Sales Performance Factors
+    st.subheader("🏅 3. Sales Team Performance Factors")
+    
+    # Success rate by sales level
+    sales_level_success = filtered_df.groupby(['Nama_Sales', 'Level_Sales']).agg({
+        'ID_Customer': 'nunique'
+    }).reset_index()
+    
+    # Get success count per sales
+    sales_success_count = latest_customer_data[latest_customer_data['Progress'] == 'Paska Deal'].groupby('Nama_Sales').size()
+    sales_total_count = latest_customer_data.groupby('Nama_Sales').size()
+    sales_success_rate = (sales_success_count / sales_total_count * 100).fillna(0)
+    
+    # Merge with level data
+    sales_performance = pd.DataFrame({
+        'Nama_Sales': sales_success_rate.index,
+        'Success_Rate': sales_success_rate.values
+    })
+    
+    level_mapping = filtered_df.groupby('Nama_Sales')['Level_Sales'].first()
+    sales_performance['Level_Sales'] = sales_performance['Nama_Sales'].map(level_mapping)
+    
+    # Level performance analysis
+    level_performance = sales_performance.groupby('Level_Sales')['Success_Rate'].agg(['mean', 'count']).reset_index()
+    level_performance.columns = ['Level_Sales', 'Avg_Success_Rate', 'Count']
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        fig_level = px.bar(
+            level_performance, x='Level_Sales', y='Avg_Success_Rate',
+            title='Average Success Rate by Sales Level (%)',
+            color='Avg_Success_Rate', color_continuous_scale='Oranges'
+        )
+        st.plotly_chart(fig_level, use_container_width=True)
+    
+    with col2:
+        fig_individual = px.scatter(
+            sales_performance, x='Level_Sales', y='Success_Rate',
+            size=[10]*len(sales_performance), hover_name='Nama_Sales',
+            title='Individual Sales Success Rate by Level',
+            color='Success_Rate', color_continuous_scale='Viridis'
+        )
+        st.plotly_chart(fig_individual, use_container_width=True)
+    
+    # Factor Insights & Recommendations
+    st.subheader("💡 4. Factor Analysis Insights & Recommendations")
+    
+    # Identify key success factors
+    best_status = status_success['Success_Rate'].idxmax()
+    best_segmen = segmen_success['Success_Rate'].idxmax()
+    best_frequency = freq_analysis['Success_Rate'].idxmax()
+    best_visit_type = visit_type_df['Success_Rate'].idxmax()
+    best_level = level_performance.loc[level_performance['Avg_Success_Rate'].idxmax(), 'Level_Sales']
+    
+    st.markdown(f"""
+    <div style='background-color:#e8f5e9;padding:1.5rem;border-radius:10px;border-left:5px solid #2e7d32;'>
+        <h4>🔍 <b>Key Success Factors Identified</b></h4>
+        <ul>
+            <li>👤 <b>Best Customer Profile:</b> {best_status} status, {best_segmen} segment</li>
+            <li>📊 <b>Optimal Visit Strategy:</b> {best_frequency} visit frequency, {best_visit_type} visit type</li>
+            <li>🏅 <b>Top Performing Level:</b> {best_level} ({level_performance.loc[level_performance['Level_Sales']==best_level, 'Avg_Success_Rate'].iloc[0]:.1f}% success rate)</li>
+            <li>📈 <b>Success Pattern:</b> Higher visit frequency correlates with better outcomes</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown(f"""
+    <div style='background-color:#e3f2fd;padding:1.5rem;border-radius:10px;border-left:5px solid #1976d2;margin-top:1rem;'>
+        <h4>🎯 <b>Strategic Recommendations</b></h4>
+        <ol>
+            <li><b>Target Customer Focus:</b> Prioritize {best_status} customers in {best_segmen} segment</li>
+            <li><b>Visit Strategy Optimization:</b> Implement {best_frequency} visit frequency as standard</li>
+            <li><b>Visit Type Prioritization:</b> Increase {best_visit_type} activities for better conversion</li>
+            <li><b>Team Development:</b> Promote best practices from {best_level} level sales to other levels</li>
+            <li><b>Resource Allocation:</b> Invest more in high-success-rate factors and customer profiles</li>
+        </ol>
+    </div>
+    """, unsafe_allow_html=True)
+
+elif page == "📅 Timeline Analysis":
+    st.title("📅 Timeline Analysis - Temporal Patterns & Trends")
+    st.markdown("### 🎯 Insight: Optimasi Timing Strategi untuk Maksimal Impact")
+    
+    # Time-based Performance Analysis
+    st.subheader("📈 1. Sales Performance Over Time")
+    
+    # Daily/Weekly/Monthly trends
+    filtered_df['Week'] = filtered_df['Tanggal'].dt.to_period('W')
+    filtered_df['Month'] = filtered_df['Tanggal'].dt.to_period('M')
+    filtered_df['DayOfWeek'] = filtered_df['Tanggal'].dt.day_name()
+    filtered_df['Hour'] = filtered_df['Tanggal'].dt.hour
+    
+    # Weekly visits trend
+    weekly_visits = filtered_df.groupby('Week').size()
+    weekly_deals = filtered_df[filtered_df['Progress'] == 'Paska Deal'].groupby('Week').size()
+    
+    # Monthly revenue trend
+    monthly_revenue = filtered_df.groupby(['Month', 'ID_Customer'])['Nilai_Kontrak'].last().groupby('Month').sum()
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        fig_weekly = px.line(
+            x=weekly_visits.index.astype(str), y=weekly_visits.values,
+            title='Weekly Visit Trends',
+            labels={'x': 'Week', 'y': 'Number of Visits'}
+        )
+        fig_weekly.update_traces(mode='lines+markers')
+        st.plotly_chart(fig_weekly, use_container_width=True)
+    
+    with col2:
+        fig_monthly = px.bar(
+            x=monthly_revenue.index.astype(str), y=monthly_revenue.values,
+            title='Monthly Revenue Trends (Rp)',
+            labels={'x': 'Month', 'y': 'Revenue'}
+        )
+        st.plotly_chart(fig_monthly, use_container_width=True)
+    
+    # Day of Week Analysis
+    st.subheader("📅 2. Day-of-Week Performance Patterns")
+    
+    dow_analysis = filtered_df.groupby('DayOfWeek').agg({
+        'ID_Customer': 'count',
+        'Progress': lambda x: (x == 'Paska Deal').sum(),
+        'Nilai_Kontrak': 'sum'
+    }).rename(columns={'ID_Customer': 'Total_Visits', 'Progress': 'Deals'})
+    
+    dow_analysis['Success_Rate'] = (dow_analysis['Deals'] / dow_analysis['Total_Visits'] * 100)
+    
+    # Reorder days
+    day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    dow_analysis = dow_analysis.reindex(day_order)
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        fig_dow_visits = px.bar(
+            dow_analysis.reset_index(), x='DayOfWeek', y='Total_Visits',
+            title='Visit Distribution by Day of Week',
+            color='Total_Visits', color_continuous_scale='Blues'
+        )
+        fig_dow_visits.update_xaxes(tickangle=45)
+        st.plotly_chart(fig_dow_visits, use_container_width=True)
+    
+    with col2:
+        fig_dow_success = px.bar(
+            dow_analysis.reset_index(), x='DayOfWeek', y='Success_Rate',
+            title='Success Rate by Day of Week (%)',
+            color='Success_Rate', color_continuous_scale='Greens'
+        )
+        fig_dow_success.update_xaxes(tickangle=45)
+        st.plotly_chart(fig_dow_success, use_container_width=True)
+    
+    # Sales Cycle Analysis
+    st.subheader("🔄 3. Sales Cycle Timeline Analysis")
+    
+    # Calculate average sales cycle duration
+    sales_cycles = []
+    for customer_id in filtered_df['ID_Customer'].unique():
+        customer_data = filtered_df[filtered_df['ID_Customer'] == customer_id].sort_values('Tanggal')
+        first_contact = customer_data['Tanggal'].min()
+        last_activity = customer_data['Tanggal'].max()
+        final_status = customer_data['Progress'].iloc[-1]
+        
+        cycle_duration = (last_activity - first_contact).days
+        sales_cycles.append({
+            'Customer_ID': customer_id,
+            'Cycle_Duration': cycle_duration,
+            'Final_Status': final_status,
+            'First_Contact': first_contact,
+            'Last_Activity': last_activity
+        })
+    
+    cycles_df = pd.DataFrame(sales_cycles)
+    
+    # Successful vs unsuccessful cycle durations
+    successful_cycles = cycles_df[cycles_df['Final_Status'] == 'Paska Deal']['Cycle_Duration']
+    unsuccessful_cycles = cycles_df[cycles_df['Final_Status'] != 'Paska Deal']['Cycle_Duration']
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        fig_cycle_hist = px.histogram(
+            cycles_df, x='Cycle_Duration', color='Final_Status',
+            title='Sales Cycle Duration Distribution',
+            nbins=20, barmode='overlay'
+        )
+        fig_cycle_hist.update_xaxes(title='Duration (Days)')
+        st.plotly_chart(fig_cycle_hist, use_container_width=True)
+    
+    with col2:
+        cycle_stats = pd.DataFrame({
+            'Metric': ['Successful Avg', 'Unsuccessful Avg', 'Successful Median', 'Unsuccessful Median'],
+            'Value': [
+                successful_cycles.mean() if len(successful_cycles) > 0 else 0,
+                unsuccessful_cycles.mean() if len(unsuccessful_cycles) > 0 else 0,
+                successful_cycles.median() if len(successful_cycles) > 0 else 0,
+                unsuccessful_cycles.median() if len(unsuccessful_cycles) > 0 else 0
+            ]
+        })
+        
+        fig_cycle_stats = px.bar(
+            cycle_stats, x='Metric', y='Value',
+            title='Sales Cycle Statistics (Days)',
+            color='Value', color_continuous_scale='Viridis'
+        )
+        fig_cycle_stats.update_xaxes(tickangle=45)
+        st.plotly_chart(fig_cycle_stats, use_container_width=True)
+    
+    # Seasonal Analysis
+    st.subheader("🌊 4. Seasonal & Temporal Insights")
+    
+    # Monthly performance comparison
+    monthly_performance = filtered_df.groupby('Month').agg({
+        'ID_Customer': 'nunique',
+        'Progress': lambda x: (x == 'Paska Deal').sum(),
+        'Nilai_Kontrak': 'sum'
+    }).rename(columns={'ID_Customer': 'Unique_Customers', 'Progress': 'Deals'})
+    
+    monthly_performance['Deals_per_Customer'] = monthly_performance['Deals'] / monthly_performance['Unique_Customers']
+    monthly_performance['Revenue_per_Customer'] = monthly_performance['Nilai_Kontrak'] / monthly_performance['Unique_Customers']
+    
+    fig_seasonal = px.line(
+        monthly_performance.reset_index(), x='Month', y=['Deals_per_Customer', 'Revenue_per_Customer'],
+        title='Monthly Performance Efficiency Trends'
+    )
+    fig_seasonal.update_xaxes(title='Month')
+    st.plotly_chart(fig_seasonal, use_container_width=True)
+    
+    # Timeline Insights & Recommendations
+    st.subheader("💡 5. Timeline Insights & Optimization Recommendations")
+    
+    # Calculate key temporal metrics
+    best_day = dow_analysis['Success_Rate'].idxmax()
+    worst_day = dow_analysis['Success_Rate'].idxmin()
+    avg_successful_cycle = successful_cycles.mean() if len(successful_cycles) > 0 else 0
+    avg_unsuccessful_cycle = unsuccessful_cycles.mean() if len(unsuccessful_cycles) > 0 else 0
+    best_month = monthly_performance['Deals_per_Customer'].idxmax()
+    
+    st.markdown(f"""
+    <div style='background-color:#e8f5e9;padding:1.5rem;border-radius:10px;border-left:5px solid #2e7d32;'>
+        <h4>⏰ <b>Temporal Success Patterns</b></h4>
+        <ul>
+            <li>📅 <b>Best Performance Day:</b> {best_day} ({dow_analysis.loc[best_day, 'Success_Rate']:.1f}% success rate)</li>
+            <li>📉 <b>Challenging Day:</b> {worst_day} ({dow_analysis.loc[best_day, 'Success_Rate']:.1f}% success rate)</li>
+            <li>⏱️ <b>Optimal Sales Cycle:</b> {avg_successful_cycle:.1f} days for successful deals</li>
+            <li>📈 <b>Peak Month:</b> {best_month} (highest deals per customer ratio)</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown(f"""
+    <div style='background-color:#fff3e0;padding:1.5rem;border-radius:10px;border-left:5px solid #f57c00;margin-top:1rem;'>
+        <h4>🎯 <b>Timeline Optimization Strategies</b></h4>
+        <ol>
+            <li><b>Focus on {best_day}:</b> Schedule important meetings and follow-ups on high-performance days</li>
+            <li><b>Improve {worst_day} Performance:</b> Analyze and address factors causing lower success rates</li>
+            <li><b>Optimize Sales Cycle:</b> Target {avg_successful_cycle:.0f}-day cycles for better success probability</li>
+            <li><b>Seasonal Planning:</b> Prepare resources and campaigns around peak performance periods</li>
+            <li><b>Early Warning System:</b> Flag deals exceeding {avg_successful_cycle + 14:.0f} days for intervention</li>
+        </ol>
+    </div>
+    """, unsafe_allow_html=True)
+
+elif page == "👤 Profil Sales":
+    st.title("👤 Profil Sales - Individual Performance Analysis")
+    st.markdown("### 🎯 Insight: Analisis Mendalam Performa Individual untuk Optimasi Tim")
+    
+    # Sales Selection for detailed analysis
+    st.subheader("🔍 Select Sales for Detailed Analysis")
+    selected_sales = st.selectbox(
+        "Pilih Sales untuk Analisis Detail:",
+        options=filtered_df['Nama_Sales'].unique(),
+        index=0
+    )
+    
+    sales_data = filtered_df[filtered_df['Nama_Sales'] == selected_sales]
+    
+    # Sales Profile Overview
+    st.subheader(f"📊 Profile Overview - {selected_sales}")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        total_customers = sales_data['ID_Customer'].nunique()
+        st.metric("Total Customers", total_customers)
+    
+    with col2:
+        total_visits = len(sales_data)
+        st.metric("Total Visits", total_visits)
+    
+    with col3:
+        avg_visits_per_customer = total_visits / total_customers if total_customers > 0 else 0
+        st.metric("Avg Visits/Customer", f"{avg_visits_per_customer:.1f}")
+    
+    with col4:
+        success_rate = (sales_data.groupby('ID_Customer')['Progress'].last() == 'Paska Deal').mean() * 100
+        st.metric("Success Rate", f"{success_rate:.1f}%")
+    
+    # Individual Performance Metrics
+    st.subheader("🏅 Individual Performance Metrics")
+    
+    # Sales activity distribution
+    activity_dist = sales_data['Jenis_Kunjungan'].value_counts()
+    progress_dist = sales_data.groupby('ID_Customer')['Progress'].last().value_counts()
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        fig_activity = px.pie(
+            values=activity_dist.values, names=activity_dist.index,
+            title=f'{selected_sales} - Activity Distribution',
+            color_discrete_sequence=px.colors.sequential.Set3
+        )
+        st.plotly_chart(fig_activity, use_container_width=True)
+    
+    with col2:
+        fig_progress = px.pie(
+            values=progress_dist.values, names=progress_dist.index,
+            title=f'{selected_sales} - Customer Progress Distribution',
+            color_discrete_sequence=px.colors.sequential.Pastel1
+        )
+        st.plotly_chart(fig_progress, use_container_width=True)
+    
+    # Performance vs Team Comparison
+    st.subheader("📈 Performance vs Team Comparison")
+    
+    # Calculate team benchmarks
+    team_metrics = filtered_df.groupby('Nama_Sales').agg({
+        'ID_Customer': 'nunique',
+        'Nilai_Kontrak': 'sum'
+    }).rename(columns={'ID_Customer': 'Total_Customers', 'Nilai_Kontrak': 'Total_Revenue'})
+    
+    # Success rate calculation
+    team_success_rates = []
+    for sales in team_metrics.index:
+        sales_customer_data = filtered_df[filtered_df['Nama_Sales'] == sales]
+        success_rate = (sales_customer_data.groupby('ID_Customer')['Progress'].last() == 'Paska Deal').mean() * 100
+        team_success_rates.append(success_rate)
+    
+    team_metrics['Success_Rate'] = team_success_rates
+    team_metrics['Revenue_per_Customer'] = team_metrics['Total_Revenue'] / team_metrics['Total_Customers']
+    
+    # Individual vs team comparison
+    individual_stats = team_metrics.loc[selected_sales]
+    team_avg = team_metrics.mean()
+    
+    comparison_data = pd.DataFrame({
+        'Metric': ['Total Customers', 'Success Rate (%)', 'Revenue per Customer (Rp)', 'Total Revenue (Rp)'],
+        'Individual': [
+            individual_stats['Total_Customers'],
+            individual_stats['Success_Rate'],
+            individual_stats['Revenue_per_Customer'],
+            individual_stats['Total_Revenue']
+        ],
+        'Team Average': [
+            team_avg['Total_Customers'],
+            team_avg['Success_Rate'],
+            team_avg['Revenue_per_Customer'],
+            team_avg['Total_Revenue']
+        ]
+    })
+    
+    comparison_data['Performance_Ratio'] = comparison_data['Individual'] / comparison_data['Team Average']
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        fig_comparison = px.bar(
+            comparison_data, x='Metric', y=['Individual', 'Team Average'],
+            title=f'{selected_sales} vs Team Performance',
+            barmode='group'
+        )
+        fig_comparison.update_xaxes(tickangle=45)
+        st.plotly_chart(fig_comparison, use_container_width=True)
+    
+    with col2:
+        # Performance radar chart
+        fig_radar = px.line_polar(
+            comparison_data, r='Performance_Ratio', theta='Metric',
+            title=f'{selected_sales} Performance Ratio vs Team',
+            line_close=True
+        )
+        fig_radar.update_traces(fill='toself')
+        st.plotly_chart(fig_radar, use_container_width=True)
+    
+    # Time-based Performance Analysis
+    st.subheader("📅 Time-based Performance Analysis")
+    
+    # Daily/weekly performance
+    sales_data['Week'] = sales_data['Tanggal'].dt.to_period('W')
+    weekly_performance = sales_data.groupby('Week').agg({
+        'ID_Customer': 'nunique',
+        'Jenis_Kunjungan': 'count'
+    }).rename(columns={'ID_Customer': 'Unique_Customers', 'Jenis_Kunjungan': 'Total_Activities'})
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        fig_weekly_customers = px.line(
+            weekly_performance.reset_index(), x='Week', y='Unique_Customers',
+            title=f'{selected_sales} - Weekly Customer Reach',
+            markers=True
+        )
+        fig_weekly_customers.update_xaxes(title='Week')
+        st.plotly_chart(fig_weekly_customers, use_container_width=True)
+    
+    with col2:
+        fig_weekly_activities = px.line(
+            weekly_performance.reset_index(), x='Week', y='Total_Activities',
+            title=f'{selected_sales} - Weekly Activities',
+            markers=True
+        )
+        fig_weekly_activities.update_xaxes(title='Week')
+        st.plotly_chart(fig_weekly_activities, use_container_width=True)
+    
+    # Customer Journey Analysis
+    st.subheader("🛤️ Customer Journey Analysis")
+    
+    # Successful customer journeys
+    successful_customers = sales_data[sales_data['Progress'] == 'Paska Deal']['ID_Customer'].unique()
+    
+    journey_patterns = {}
+    for customer_id in sales_data['ID_Customer'].unique():
+        customer_journey = sales_data[sales_data['ID_Customer'] == customer_id].sort_values('Tanggal')
+        journey_steps = customer_journey['Progress'].unique()
+        journey_str = ' → '.join(journey_steps)
+        
+        is_successful = customer_id in successful_customers
+        if journey_str not in journey_patterns:
+            journey_patterns[journey_str] = {'successful': 0, 'total': 0}
+        
+        journey_patterns[journey_str]['total'] += 1
+        if is_successful:
+            journey_patterns[journey_str]['successful'] += 1
+    
+    # Convert to DataFrame
+    journey_df = pd.DataFrame([
+        {
+            'Journey': journey,
+            'Total_Customers': data['total'],
+            'Successful_Customers': data['successful'],
+            'Success_Rate': (data['successful'] / data['total'] * 100) if data['total'] > 0 else 0
+        }
+        for journey, data in journey_patterns.items()
+    ]).sort_values('Total_Customers', ascending=False)
+    
+    st.dataframe(journey_df, use_container_width=True)
+    
+    # Individual Insights & Recommendations
+    st.subheader("💡 Individual Insights & Development Recommendations")
+    
+    # Performance assessment
+    performance_assessment = []
+    
+    if individual_stats['Success_Rate'] > team_avg['Success_Rate']:
+        performance_assessment.append("✅ Above average success rate")
+    else:
+        performance_assessment.append("⚠️ Below average success rate")
+    
+    if individual_stats['Revenue_per_Customer'] > team_avg['Revenue_per_Customer']:
+        performance_assessment.append("✅ Above average revenue per customer")
+    else:
+        performance_assessment.append("⚠️ Below average revenue per customer")
+    
+    if individual_stats['Total_Customers'] > team_avg['Total_Customers']:
+        performance_assessment.append("✅ Above average customer reach")
+    else:
+        performance_assessment.append("⚠️ Below average customer reach")
+    
+    # Get best performing journey for this sales
+    best_journey = journey_df.loc[journey_df['Success_Rate'].idxmax(), 'Journey'] if len(journey_df) > 0 else "N/A"
+    
+    st.markdown(f"""
+    <div style='background-color:#e8f5e9;padding:1.5rem;border-radius:10px;border-left:5px solid #2e7d32;'>
+        <h4>📊 <b>Performance Assessment - {selected_sales}</b></h4>
+        <ul>
+            {"".join(f"<li>{assessment}</li>" for assessment in performance_assessment)}
+            <li>🎯 <b>Most Successful Journey Pattern:</b> {best_journey}</li>
+            <li>📈 <b>Performance Ratio vs Team:</b> {comparison_data['Performance_Ratio'].mean():.2f}x</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Personalized recommendations
+    recommendations = []
+    
+    if individual_stats['Success_Rate'] < team_avg['Success_Rate']:
+        recommendations.append("Focus on improving conversion techniques and follow-up strategies")
+    
+    if individual_stats['Revenue_per_Customer'] < team_avg['Revenue_per_Customer']:
+        recommendations.append("Work on upselling and cross-selling opportunities")
+    
+    if individual_stats['Total_Customers'] < team_avg['Total_Customers']:
+        recommendations.append("Increase prospecting activities and customer outreach")
+    
+    if avg_visits_per_customer < 3:
+        recommendations.append("Increase customer touchpoints and relationship building")
+    
+    recommendations.append(f"Replicate successful journey pattern: {best_journey}")
+    
+    st.markdown(f"""
+    <div style='background-color:#e3f2fd;padding:1.5rem;border-radius:10px;border-left:5px solid #1976d2;margin-top:1rem;'>
+        <h4>🚀 <b>Personalized Development Plan</b></h4>
+        <ol>
+            {"".join(f"<li>{rec}</li>" for rec in recommendations)}
+        </ol>
+    </div>
+    """, unsafe_allow_html=True)
+
+elif page == "🏅 Sales Performance":
+    st.title("🏅 Sales Performance - Team & Individual Excellence Analysis")
+    st.markdown("### 🎯 Insight: Optimasi Performa Team Sales untuk Mencapai Target Maksimal")
+    
+    # Team Performance Overview
+    st.subheader("🏆 Team Performance Overview")
+    
+    # Calculate comprehensive team metrics
+    team_performance = filtered_df.groupby('Nama_Sales').agg({
+        'ID_Customer': 'nunique',
+        'Jenis_Kunjungan': 'count',
+        'Nilai_Kontrak': 'sum'
+    }).rename(columns={
+        'ID_Customer': 'Total_Customers',
+        'Jenis_Kunjungan': 'Total_Visits',
+        'Nilai_Kontrak': 'Total_Revenue'
+    })
+    
+    # Add success rate and efficiency metrics
+    success_rates = []
+    avg_cycle_times = []
+    
+    for sales in team_performance.index:
+        sales_data = filtered_df[filtered_df['Nama_Sales'] == sales]
+        
+        # Success rate calculation
+        success_rate = (sales_data.groupby('ID_Customer')['Progress'].last() == 'Paska Deal').mean() * 100
+        success_rates.append(success_rate)
+        
+        # Average cycle time calculation
+        successful_customers = sales_data[sales_data['Progress'] == 'Paska Deal']['ID_Customer'].unique()
+        cycle_times = []
+        
+        for customer_id in successful_customers:
+            customer_data = sales_data[sales_data['ID_Customer'] == customer_id].sort_values('Tanggal')
+            first_contact = customer_data['Tanggal'].min()
+            deal_date = customer_data[customer_data['Progress'] == 'Paska Deal']['Tanggal'].max()
+            cycle_time = (deal_date - first_contact).days
+            if cycle_time >= 0:
+                cycle_times.append(cycle_time)
+        
+        avg_cycle_time = np.mean(cycle_times) if cycle_times else 0
+        avg_cycle_times.append(avg_cycle_time)
+    
+    team_performance['Success_Rate'] = success_rates
+    team_performance['Avg_Cycle_Time'] = avg_cycle_times
+    team_performance['Visits_per_Customer'] = team_performance['Total_Visits'] / team_performance['Total_Customers']
+    team_performance['Revenue_per_Customer'] = team_performance['Total_Revenue'] / team_performance['Total_Customers']
+    team_performance['Efficiency_Score'] = (team_performance['Success_Rate'] / 100) * (team_performance['Revenue_per_Customer'] / 1000000)
+    
+    # Add sales level information
+    level_mapping = filtered_df.groupby('Nama_Sales')['Level_Sales'].first()
+    team_performance['Level_Sales'] = team_performance.index.map(level_mapping)
+    
+    # Top performers section
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        top_revenue = team_performance['Total_Revenue'].idxmax()
+        st.metric("Top Revenue", top_revenue, f"Rp {team_performance.loc[top_revenue, 'Total_Revenue']:,.0f}")
+    
+    with col2:
+        top_success = team_performance['Success_Rate'].idxmax()
+        st.metric("Highest Success Rate", top_success, f"{team_performance.loc[top_success, 'Success_Rate']:.1f}%")
+    
+    with col3:
+        most_customers = team_performance['Total_Customers'].idxmax()
+        st.metric("Most Customers", most_customers, f"{team_performance.loc[most_customers, 'Total_Customers']:.0f}")
+    
+    with col4:
+        fastest_cycle = team_performance[team_performance['Avg_Cycle_Time'] > 0]['Avg_Cycle_Time'].idxmin()
+        st.metric("Fastest Cycle", fastest_cycle, f"{team_performance.loc[fastest_cycle, 'Avg_Cycle_Time']:.1f} days")
+    
+    # Performance Ranking & Comparison
+    st.subheader("📊 Performance Ranking & Analysis")
+    
+    # Performance metrics visualization
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Success rate by sales
+        fig_success = px.bar(
+            team_performance.sort_values('Success_Rate', ascending=True).reset_index(),
+            x='Success_Rate', y='Nama_Sales',
+            title='Success Rate by Sales Person (%)',
+            color='Success_Rate', color_continuous_scale='Viridis',
+            orientation='h'
+        )
+        st.plotly_chart(fig_success, use_container_width=True)
+    
+    with col2:
+        # Revenue per customer
+        fig_revenue = px.bar(
+            team_performance.sort_values('Revenue_per_Customer', ascending=True).reset_index(),
+            x='Revenue_per_Customer', y='Nama_Sales',
+            title='Revenue per Customer by Sales (Rp)',
+            color='Revenue_per_Customer', color_continuous_scale='Plasma',
+            orientation='h'
+        )
+        st.plotly_chart(fig_revenue, use_container_width=True)
+    
+    # Performance by Level Analysis
+    st.subheader("🏅 Performance by Sales Level")
+    
+    level_analysis = team_performance.groupby('Level_Sales').agg({
+        'Success_Rate': ['mean', 'std'],
+        'Revenue_per_Customer': ['mean', 'std'],
+        'Total_Customers': 'sum',
+        'Efficiency_Score': 'mean'
+    }).round(2)
+    
+    level_analysis.columns = ['Avg_Success_Rate', 'Std_Success_Rate', 'Avg_Revenue_per_Customer', 'Std_Revenue_per_Customer', 'Total_Customers', 'Avg_Efficiency_Score']
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        fig_level_success = px.bar(
+            level_analysis.reset_index(),
+            x='Level_Sales', y='Avg_Success_Rate',
+            title='Average Success Rate by Level (%)',
+            color='Avg_Success_Rate', color_continuous_scale='Greens'
+        )
+        st.plotly_chart(fig_level_success, use_container_width=True)
+    
+    with col2:
+        fig_level_revenue = px.bar(
+            level_analysis.reset_index(),
+            x='Level_Sales', y='Avg_Revenue_per_Customer',
+            title='Average Revenue per Customer by Level (Rp)',
+            color='Avg_Revenue_per_Customer', color_continuous_scale='Blues'
+        )
+        st.plotly_chart(fig_level_revenue, use_container_width=True)
+    
+    # Performance Distribution Analysis
+    st.subheader("📈 Performance Distribution & Benchmarking")
+    
+    # Scatter plot: Success rate vs Revenue per customer
+    fig_scatter = px.scatter(
+        team_performance.reset_index(),
+        x='Success_Rate', y='Revenue_per_Customer',
+        size='Total_Customers', color='Level_Sales',
+        hover_name='Nama_Sales',
+        title='Success Rate vs Revenue per Customer (Size = Total Customers)',
+        labels={'Success_Rate': 'Success Rate (%)', 'Revenue_per_Customer': 'Revenue per Customer (Rp)'}
+    )
+    st.plotly_chart(fig_scatter, use_container_width=True)
+    
+    # Performance benchmarking table
+    st.subheader("📋 Detailed Performance Benchmarking")
+    
+    # Calculate percentile rankings
+    team_performance['Success_Rate_Rank'] = team_performance['Success_Rate'].rank(method='dense', ascending=False)
+    team_performance['Revenue_Rank'] = team_performance['Revenue_per_Customer'].rank(method='dense', ascending=False)
+    team_performance['Efficiency_Rank'] = team_performance['Efficiency_Score'].rank(method='dense', ascending=False)
+    team_performance['Overall_Rank'] = (team_performance['Success_Rate_Rank'] + team_performance['Revenue_Rank'] + team_performance['Efficiency_Rank']) / 3
+    
+    # Display comprehensive performance table
+    performance_display = team_performance.reset_index()[['Nama_Sales', 'Level_Sales', 'Total_Customers', 'Success_Rate', 'Revenue_per_Customer', 'Avg_Cycle_Time', 'Efficiency_Score', 'Overall_Rank']].round(2)
+    performance_display = performance_display.sort_values('Overall_Rank')
+    
+    st.dataframe(performance_display, use_container_width=True)
+    
+    # Performance Insights & Recommendations
+    st.subheader("💡 Team Performance Insights & Strategic Recommendations")
+    
+    # Calculate key insights
+    best_performer = team_performance.loc[team_performance['Overall_Rank'].idxmin()]
+    worst_performer = team_performance.loc[team_performance['Overall_Rank'].idxmax()]
+    best_level = level_analysis['Avg_Efficiency_Score'].idxmax()
+    improvement_needed = team_performance[team_performance['Success_Rate'] < team_performance['Success_Rate'].median()]
+    
+    st.markdown(f"""
+    <div style='background-color:#e8f5e9;padding:1.5rem;border-radius:10px;border-left:5px solid #2e7d32;'>
+        <h4>🏆 <b>Top Performance Insights</b></h4>
+        <ul>
+            <li>🥇 <b>Overall Best Performer:</b> {best_performer.name} (Level: {best_performer['Level_Sales']}, Success Rate: {best_performer['Success_Rate']:.1f}%)</li>
+            <li>🏅 <b>Top Performing Level:</b> {best_level} (Average efficiency: {level_analysis.loc[best_level, 'Avg_Efficiency_Score']:.2f})</li>
+            <li>📊 <b>Team Average Success Rate:</b> {team_performance['Success_Rate'].mean():.1f}%</li>
+            <li>💰 <b>Team Average Revenue per Customer:</b> Rp {team_performance['Revenue_per_Customer'].mean():,.0f}</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown(f"""
+    <div style='background-color:#fff3e0;padding:1.5rem;border-radius:10px;border-left:5px solid #f57c00;margin-top:1rem;'>
+        <h4>🎯 <b>Strategic Development Recommendations</b></h4>
+        <ol>
+            <li><b>Best Practice Sharing:</b> Have {best_performer.name} mentor team members on successful techniques</li>
+            <li><b>Level-Based Training:</b> Focus on developing {best_level} level practices across all levels</li>
+            <li><b>Performance Improvement Plan:</b> {len(improvement_needed)} sales members need focused coaching</li>
+            <li><b>Cycle Time Optimization:</b> Target reducing average cycle time to {team_performance['Avg_Cycle_Time'].min():.0f} days</li>
+            <li><b>Revenue Enhancement:</b> Focus on upselling strategies to reach top performer benchmarks</li>
+        </ol>
+    </div>
+    """, unsafe_allow_html=True)
+
+elif page == "🟦 Sales Performance":
     import matplotlib.pyplot as plt
     import seaborn as sns
 
