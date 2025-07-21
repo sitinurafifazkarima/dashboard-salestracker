@@ -45,11 +45,43 @@ page = st.sidebar.radio("Pilih Halaman", ["🟦 Aktivitas Sales", "🟦 Performa
 if page == "🟦 Aktivitas Sales":
     st.title("🟦 Dashboard Aktivitas & Kinerja Tim Sales")
 
-    # Load metrik ringkasan tambahan dari pickle
-    with open("overview_metrics.pkl", "rb") as f:
-        overview_data = pickle.load(f)
-
-    kontrak_summary = overview_data['nilai_kontrak_breakdown']
+# Load metrik ringkasan tambahan dari pickle
+    try:
+        with open("overview_metrics.pkl", "rb") as f:
+            overview_data = pickle.load(f)
+        kontrak_summary = overview_data.get('nilai_kontrak_breakdown', {
+            'pendapatan_riil': 0, 'prospek': 0, 'lost': 0, 'total_project': 0,
+            'persen_riil': 0, 'persen_prospek': 0, 'persen_lost': 0
+        })
+    except:
+        # Fallback calculation if pickle file doesn't exist or doesn't have the required data
+        latest_contracts = filtered_df.sort_values('Tanggal').groupby('ID_Customer').last()
+        
+        pendapatan_riil = latest_contracts[
+            (latest_contracts['Progress'] == 'Paska Deal') & 
+            (latest_contracts['Status_Kontrak'] == 'deal')
+        ]['Nilai_Kontrak'].sum()
+        
+        prospek = latest_contracts[
+            (latest_contracts['Progress'] != 'Paska Deal') & 
+            (latest_contracts['Status_Kontrak'] == 'Berpotensi Deal')
+        ]['Nilai_Kontrak'].sum()
+        
+        lost = latest_contracts[
+            latest_contracts['Status_Kontrak'].isin(['Cancel', 'Batal'])
+        ]['Nilai_Kontrak'].sum()
+        
+        total_project = pendapatan_riil + prospek + lost
+        
+        kontrak_summary = {
+            'pendapatan_riil': pendapatan_riil,
+            'prospek': prospek,
+            'lost': lost,
+            'total_project': total_project,
+            'persen_riil': (pendapatan_riil / total_project * 100) if total_project > 0 else 0,
+            'persen_prospek': (prospek / total_project * 100) if total_project > 0 else 0,
+            'persen_lost': (lost / total_project * 100) if total_project > 0 else 0
+        }
 
     # KPI Ringkasan
     col1, col2, col3 = st.columns(3)
@@ -240,71 +272,443 @@ if page == "🟦 Aktivitas Sales":
     st.plotly_chart(fig_gap)
 
 elif page == "🟦 Performansi Sales":
-    st.title("🟦 Leaderboard & Performansi Sales")
+    st.title("🟦 Dashboard Performansi & Analisis Sales")
 
     # Load data performa dari pickle utama
-    with open("performa_sales.pkl", "rb") as f:
-        performa_data = pickle.load(f)
-
-    sales_perf = performa_data['sales_performance']
-    low_perf = performa_data['low_performers']
-    top_sales = performa_data['top_performer']
+    try:
+        with open("performa_sales.pkl", "rb") as f:
+            performa_data = pickle.load(f)
+        sales_perf = performa_data.get('sales_performance', pd.DataFrame())
+        low_perf = performa_data.get('low_performers', pd.DataFrame())
+        top_sales = performa_data.get('top_performer', 'N/A')
+    except:
+        # Fallback jika file pickle tidak ada
+        sales_perf = pd.DataFrame()
+        low_perf = pd.DataFrame()
+        top_sales = 'N/A'
 
     # ==========================
-    # Leaderboard Utama
+    # 1. FUNNEL KOMPARATIF PER SALES (Layer Pertama)
     # ==========================
-    st.subheader("📊 Leaderboard Performa Sales (Deal, Kontrak, Closing Rate)")
-    st.dataframe(
-        sales_perf.reset_index().rename(columns={sales_perf.index.name: 'Nama_Sales'}),
-        use_container_width=True
+    st.subheader("📊 Funnel Komparatif per Sales")
+    
+    # Hitung funnel per sales
+    tahapan_funnel = ['Inisiasi', 'Presentasi', 'Penawaran Harga', 'Negosiasi', 'Paska Deal']
+    funnel_sales = {}
+    
+    for sales in filtered_df['Nama_Sales'].unique():
+        df_sales = filtered_df[filtered_df['Nama_Sales'] == sales]
+        funnel_sales[sales] = {
+            tahap: df_sales[df_sales['Progress'] == tahap]['ID_Customer'].nunique()
+            for tahap in tahapan_funnel
+        }
+    
+    # Convert to DataFrame untuk visualisasi
+    df_funnel_sales = pd.DataFrame(funnel_sales).T.fillna(0).astype(int)
+    df_funnel_melt = df_funnel_sales.reset_index().melt(
+        id_vars='index', var_name='Tahapan', value_name='Jumlah_Customer'
+    ).rename(columns={'index': 'Nama_Sales'})
+    
+    # Stacked bar chart untuk funnel komparatif
+    fig_funnel_comp = px.bar(
+        df_funnel_melt, x='Nama_Sales', y='Jumlah_Customer',
+        color='Tahapan', barmode='stack',
+        title='Funnel Komparatif: Jumlah Customer per Tahapan per Sales',
+        color_discrete_sequence=px.colors.sequential.Teal
     )
+    fig_funnel_comp.update_layout(height=500)
+    st.plotly_chart(fig_funnel_comp, use_container_width=True)
 
-    # Visualisasi performa
+    # Konversi rate per sales
+    konversi_sales = {}
+    for sales in df_funnel_sales.index:
+        if df_funnel_sales.loc[sales, 'Inisiasi'] > 0:
+            konversi_sales[sales] = (df_funnel_sales.loc[sales, 'Paska Deal'] / 
+                                   df_funnel_sales.loc[sales, 'Inisiasi'] * 100)
+        else:
+            konversi_sales[sales] = 0
+    
+    konversi_df = pd.DataFrame(list(konversi_sales.items()), 
+                              columns=['Nama_Sales', 'Konversi_Rate'])
+    
+    fig_konversi = px.bar(
+        konversi_df, x='Nama_Sales', y='Konversi_Rate',
+        title='Conversion Rate: Inisiasi → Paska Deal (%)',
+        color='Konversi_Rate', color_continuous_scale='Greens'
+    )
+    st.plotly_chart(fig_konversi, use_container_width=True)
+
+    # ==========================
+    # 2. LEADERBOARD & PERFORMANSI SALES (Layer Kedua)
+    # ==========================
+    st.subheader("🏆 Leaderboard Performa Sales Komprehensif")
+    
+    # Menghitung metrik lengkap per sales dari filtered data
+    sales_metrics = {}
+    
+    for sales in filtered_df['Nama_Sales'].unique():
+        df_sales = filtered_df[filtered_df['Nama_Sales'] == sales]
+        
+        # Ambil data kontrak terbaru per customer
+        latest_per_customer = df_sales.sort_values('Tanggal').groupby('ID_Customer').last()
+        
+        # Hitung metrik
+        total_kunjungan = len(df_sales)
+        total_customer = df_sales['ID_Customer'].nunique()
+        
+        # Deal berdasarkan Progress = Paska Deal
+        deals = latest_per_customer[latest_per_customer['Progress'] == 'Paska Deal']
+        jumlah_deal = len(deals)
+        
+        # Nilai kontrak berdasarkan logika bisnis yang benar
+        nilai_aktual = latest_per_customer[
+            (latest_per_customer['Progress'] == 'Paska Deal') & 
+            (latest_per_customer['Status_Kontrak'] == 'deal')
+        ]['Nilai_Kontrak'].sum()
+        
+        nilai_prospek = latest_per_customer[
+            (latest_per_customer['Progress'] != 'Paska Deal') & 
+            (latest_per_customer['Status_Kontrak'] == 'Berpotensi Deal')
+        ]['Nilai_Kontrak'].sum()
+        
+        # Target vs realisasi
+        target_total = df_sales['Target_Sales'].sum()  # Total target untuk semua customer
+        realisasi_persen = (nilai_aktual / target_total * 100) if target_total > 0 else 0
+        
+        # Closing rate
+        closing_rate = (jumlah_deal / total_customer * 100) if total_customer > 0 else 0
+        
+        # Average Handling Time (AHT) - rata-rata durasi per customer
+        aht_list = []
+        for customer_id in df_sales['ID_Customer'].unique():
+            cust_data = df_sales[df_sales['ID_Customer'] == customer_id].sort_values('Tanggal')
+            if len(cust_data) > 1:
+                durasi = (cust_data['Tanggal'].max() - cust_data['Tanggal'].min()).days
+                aht_list.append(durasi)
+        
+        avg_handling_time = np.mean(aht_list) if aht_list else 0
+        
+        # Frekuensi kunjungan per customer
+        avg_freq = total_kunjungan / total_customer if total_customer > 0 else 0
+        
+        sales_metrics[sales] = {
+            'Total_Kunjungan': total_kunjungan,
+            'Total_Customer': total_customer,
+            'Jumlah_Deal': jumlah_deal,
+            'Nilai_Aktual': nilai_aktual,
+            'Nilai_Prospek': nilai_prospek,
+            'Target_Total': target_total,
+            'Realisasi_Persen': realisasi_persen,
+            'Closing_Rate': closing_rate,
+            'Avg_Handling_Time': avg_handling_time,
+            'Avg_Freq_Kunjungan': avg_freq
+        }
+    
+    # Convert ke DataFrame
+    performance_df = pd.DataFrame(sales_metrics).T
+    performance_df = performance_df.sort_values('Jumlah_Deal', ascending=False)
+    
+    # Display leaderboard
+    st.dataframe(performance_df.round(2), use_container_width=True)
+
+    # ==========================
+    # 3. AVERAGE HANDLING TIME ANALYSIS
+    # ==========================
+    st.subheader("⏱️ Average Handling Time (AHT) Analysis")
+    
     col1, col2 = st.columns(2)
+    
     with col1:
-        st.markdown("**Jumlah Kunjungan vs Jumlah Deal**")
-        fig1 = px.bar(
-            sales_perf.reset_index(),
-            x='Nama_Sales',
-            y=['Total_Kunjungan', 'Jumlah_Deal'],
-            barmode='group',
-            color_discrete_sequence=px.colors.sequential.Teal
+        # AHT per Sales
+        aht_fig = px.bar(
+            performance_df.reset_index(), x='index', y='Avg_Handling_Time',
+            title='Average Handling Time per Sales (Hari)',
+            color='Avg_Handling_Time', color_continuous_scale='Oranges'
         )
-        st.plotly_chart(fig1, use_container_width=True)
-
+        aht_fig.update_xaxes(title='Sales')
+        st.plotly_chart(aht_fig, use_container_width=True)
+    
     with col2:
-        st.markdown("**Closing Rate per Sales**")
-        fig2 = px.bar(
-            sales_perf.reset_index(),
-            x='Nama_Sales',
-            y='Closing_Rate',
-            color='Closing_Rate',
-            color_continuous_scale='BuGn',
-            labels={'Closing_Rate': 'Closing Rate (%)'}
+        # Scatter: AHT vs Closing Rate
+        scatter_aht = px.scatter(
+            performance_df.reset_index(), x='Avg_Handling_Time', y='Closing_Rate',
+            size='Jumlah_Deal', hover_name='index',
+            title='Korelasi AHT vs Closing Rate',
+            color='Closing_Rate', color_continuous_scale='Viridis'
         )
-        st.plotly_chart(fig2, use_container_width=True)
+        st.plotly_chart(scatter_aht, use_container_width=True)
 
-    st.markdown("### Nilai Kontrak Aktual vs Prospek")
-    fig3 = px.bar(
-        sales_perf.reset_index(),
-        x='Nama_Sales',
-        y=['Nilai_Kontrak_Aktual', 'Prospek_Nilai_Kontrak'],
-        title='Nilai Kontrak per Sales',
-        barmode='stack',
-        color_discrete_sequence=px.colors.sequential.Mint
+    # Insight AHT
+    best_aht = performance_df['Avg_Handling_Time'].min()
+    worst_aht = performance_df['Avg_Handling_Time'].max()
+    best_aht_sales = performance_df['Avg_Handling_Time'].idxmin()
+    
+    st.info(f"💡 **AHT Terbaik**: {best_aht_sales} ({best_aht:.1f} hari) | **AHT Terburuk**: {worst_aht:.1f} hari")
+
+    # ==========================
+    # 4. TARGET vs REALISASI ANALYSIS
+    # ==========================
+    st.subheader("🎯 Analisis Target vs Realisasi")
+    
+    # Per Sales
+    target_vs_real = performance_df[['Target_Total', 'Nilai_Aktual', 'Realisasi_Persen']].copy()
+    target_vs_real = target_vs_real.reset_index()
+    
+    fig_target = px.bar(
+        target_vs_real, x='index', y=['Target_Total', 'Nilai_Aktual'],
+        title='Target vs Realisasi per Sales (Nilai Kontrak)',
+        barmode='group', color_discrete_sequence=['#ff7f0e', '#2ca02c']
     )
-    st.plotly_chart(fig3, use_container_width=True)
+    fig_target.update_xaxes(title='Sales')
+    st.plotly_chart(fig_target, use_container_width=True)
+    
+    # Achievement percentage
+    achievement_fig = px.bar(
+        target_vs_real, x='index', y='Realisasi_Persen',
+        title='Persentase Pencapaian Target per Sales (%)',
+        color='Realisasi_Persen', color_continuous_scale='RdYlGn'
+    )
+    achievement_fig.add_hline(y=100, line_dash="dash", line_color="red", 
+                             annotation_text="Target 100%")
+    st.plotly_chart(achievement_fig, use_container_width=True)
 
     # ==========================
-    # Efisiensi Waktu: Inisiasi ke Deal
+    # 5. ANALISIS PER SEGMEN
     # ==========================
-    st.subheader("⏱️ Leaderboard Efisiensi Proses (Dari Inisiasi ke Deal)")
+    st.subheader("📈 Analisis Target vs Realisasi per Segmen")
+    
+    # Target vs Realisasi per Segmen
+    segmen_metrics = {}
+    for segmen in filtered_df['Segmen'].dropna().unique():
+        df_segmen = filtered_df[filtered_df['Segmen'] == segmen]
+        latest_segmen = df_segmen.sort_values('Tanggal').groupby('ID_Customer').last()
+        
+        target_segmen = df_segmen['Target_Sales'].sum()
+        realisasi_segmen = latest_segmen[
+            (latest_segmen['Progress'] == 'Paska Deal') & 
+            (latest_segmen['Status_Kontrak'] == 'deal')
+        ]['Nilai_Kontrak'].sum()
+        
+        achievement_segmen = (realisasi_segmen / target_segmen * 100) if target_segmen > 0 else 0
+        
+        segmen_metrics[segmen] = {
+            'Target': target_segmen,
+            'Realisasi': realisasi_segmen,
+            'Achievement_Persen': achievement_segmen,
+            'Customer_Count': df_segmen['ID_Customer'].nunique(),
+            'Deal_Count': len(latest_segmen[latest_segmen['Progress'] == 'Paska Deal'])
+        }
+    
+    segmen_df = pd.DataFrame(segmen_metrics).T.reset_index()
+    segmen_df.columns = ['Segmen', 'Target', 'Realisasi', 'Achievement_Persen', 'Customer_Count', 'Deal_Count']
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        fig_segmen_target = px.bar(
+            segmen_df, x='Segmen', y=['Target', 'Realisasi'],
+            title='Target vs Realisasi per Segmen', barmode='group',
+            color_discrete_sequence=['#ff7f0e', '#2ca02c']
+        )
+        st.plotly_chart(fig_segmen_target, use_container_width=True)
+    
+    with col2:
+        fig_segmen_achievement = px.bar(
+            segmen_df, x='Segmen', y='Achievement_Persen',
+            title='Achievement Rate per Segmen (%)',
+            color='Achievement_Persen', color_continuous_scale='RdYlGn'
+        )
+        fig_segmen_achievement.add_hline(y=100, line_dash="dash", line_color="red")
+        st.plotly_chart(fig_segmen_achievement, use_container_width=True)
 
-    # Ambil hanya customer yang sampai tahap Paska Deal
-    paska_deal_customers = df[df["Progress"] == "Paska Deal"]["ID_Customer"].unique()
-    df_paska = df[df["ID_Customer"].isin(paska_deal_customers)].copy().sort_values(["ID_Customer", "Tanggal"])
+    # ==========================
+    # 6. ANALISIS AKTIVITAS & PRODUKTIVITAS
+    # ==========================
+    st.subheader("📊 Analisis Aktivitas & Produktivitas Sales")
+    
+    # Customer per Sales Ratio
+    performance_df['Customer_per_Visit'] = performance_df['Total_Customer'] / performance_df['Total_Kunjungan']
+    performance_df['Deal_per_Visit'] = performance_df['Jumlah_Deal'] / performance_df['Total_Kunjungan']
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        productivity_fig = px.scatter(
+            performance_df.reset_index(), x='Total_Kunjungan', y='Jumlah_Deal',
+            size='Nilai_Aktual', hover_name='index',
+            title='Produktivitas: Kunjungan vs Deal',
+            color='Closing_Rate', color_continuous_scale='Turbo'
+        )
+        st.plotly_chart(productivity_fig, use_container_width=True)
+    
+    with col2:
+        efficiency_df = performance_df[['Deal_per_Visit', 'Customer_per_Visit']].reset_index()
+        efficiency_fig = px.bar(
+            efficiency_df, x='index', y=['Deal_per_Visit', 'Customer_per_Visit'],
+            title='Efisiensi: Deal & Customer per Kunjungan', barmode='group',
+            color_discrete_sequence=['#1f77b4', '#ff7f0e']
+        )
+        efficiency_fig.update_xaxes(title='Sales')
+        st.plotly_chart(efficiency_fig, use_container_width=True)
 
-    # Hitung durasi per customer
+    # ==========================
+    # 7. ANALISIS PIPELINE & FORECASTING
+    # ==========================
+    st.subheader("🔮 Pipeline Analysis & Sales Forecasting")
+    
+    # Pipeline per Sales
+    pipeline_data = []
+    for sales in filtered_df['Nama_Sales'].unique():
+        df_sales = filtered_df[filtered_df['Nama_Sales'] == sales]
+        latest_sales = df_sales.sort_values('Tanggal').groupby('ID_Customer').last()
+        
+        for tahap in tahapan_funnel:
+            customer_in_stage = latest_sales[latest_sales['Progress'] == tahap]
+            nilai_stage = customer_in_stage[
+                customer_in_stage['Status_Kontrak'] == 'Berpotensi Deal'
+            ]['Nilai_Kontrak'].sum()
+            
+            pipeline_data.append({
+                'Sales': sales,
+                'Tahap': tahap,
+                'Nilai_Pipeline': nilai_stage,
+                'Customer_Count': len(customer_in_stage)
+            })
+    
+    pipeline_df = pd.DataFrame(pipeline_data)
+    
+    # Pipeline value per stage
+    pipeline_summary = pipeline_df.groupby('Tahap')['Nilai_Pipeline'].sum().reset_index()
+    pipeline_fig = px.funnel(
+        pipeline_summary, x='Nilai_Pipeline', y='Tahap',
+        title='Pipeline Value per Tahapan (Rp)',
+        color_discrete_sequence=px.colors.sequential.Viridis
+    )
+    st.plotly_chart(pipeline_fig, use_container_width=True)
+    
+    # Forecasting berdasarkan conversion rate historis
+    total_pipeline = pipeline_df[pipeline_df['Tahap'] != 'Paska Deal']['Nilai_Pipeline'].sum()
+    avg_conversion = performance_df['Closing_Rate'].mean() / 100
+    forecasted_revenue = total_pipeline * avg_conversion
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Total Pipeline Value", f"Rp {total_pipeline/1e6:.1f}M")
+    with col2:
+        st.metric("Avg Conversion Rate", f"{avg_conversion*100:.1f}%")
+    with col3:
+        st.metric("Forecasted Revenue", f"Rp {forecasted_revenue/1e6:.1f}M")
+
+    # ==========================
+    # 8. EFISIENSI WAKTU & PROSES
+    # ==========================
+    st.subheader("⏱️ Analisis Efisiensi Waktu & Proses")
+    
+    # Waktu rata-rata per tahap untuk setiap sales
+    stage_time_data = []
+    for sales in filtered_df['Nama_Sales'].unique():
+        df_sales = filtered_df[filtered_df['Nama_Sales'] == sales]
+        
+        for customer_id in df_sales['ID_Customer'].unique():
+            customer_data = df_sales[df_sales['ID_Customer'] == customer_id].sort_values('Tanggal')
+            customer_stages = customer_data['Progress'].unique()
+            
+            for i, stage in enumerate(customer_stages[:-1]):
+                if i < len(customer_stages) - 1:
+                    current_stage_date = customer_data[customer_data['Progress'] == stage]['Tanggal'].min()
+                    next_stage_date = customer_data[customer_data['Progress'] == customer_stages[i+1]]['Tanggal'].min()
+                    
+                    if pd.notnull(current_stage_date) and pd.notnull(next_stage_date):
+                        time_diff = (next_stage_date - current_stage_date).days
+                        if time_diff >= 0:
+                            stage_time_data.append({
+                                'Sales': sales,
+                                'From_Stage': stage,
+                                'To_Stage': customer_stages[i+1],
+                                'Days': time_diff
+                            })
+    
+    if stage_time_data:
+        stage_time_df = pd.DataFrame(stage_time_data)
+        avg_stage_time = stage_time_df.groupby(['Sales', 'From_Stage'])['Days'].mean().reset_index()
+        
+        # Heatmap waktu per tahap per sales
+        heatmap_data = avg_stage_time.pivot(index='Sales', columns='From_Stage', values='Days').fillna(0)
+        
+        fig_heatmap = px.imshow(
+            heatmap_data, 
+            title='Average Days per Stage Transition (Heatmap)',
+            color_continuous_scale='RdYlBu_r',
+            aspect='auto'
+        )
+        st.plotly_chart(fig_heatmap, use_container_width=True)
+
+    # ==========================
+    # 9. INSIGHTS & RECOMMENDATIONS
+    # ==========================
+    st.subheader("🧠 Comprehensive Insights & Strategic Recommendations")
+    
+    # Top performers identification
+    top_closing = performance_df['Closing_Rate'].idxmax()
+    top_revenue = performance_df['Nilai_Aktual'].idxmax() 
+    top_efficiency = performance_df['Deal_per_Visit'].idxmax()
+    best_aht_performer = performance_df['Avg_Handling_Time'].idxmin()
+    
+    # Underperformers
+    low_closing = performance_df[performance_df['Closing_Rate'] < performance_df['Closing_Rate'].median()]
+    high_aht = performance_df[performance_df['Avg_Handling_Time'] > performance_df['Avg_Handling_Time'].median()]
+    
+    # Target achievement analysis
+    underachievers = performance_df[performance_df['Realisasi_Persen'] < 80]
+    
+    st.markdown(f"""
+    <div style='background-color:#f1f8e9;padding:1.5rem;border-radius:10px;border-left:5px solid #2e7d32;'>
+        <h4>🏆 <b>Top Performers Identification</b></h4>
+        <ul>
+            <li>🎯 <b>Highest Closing Rate:</b> {top_closing} ({performance_df.loc[top_closing, 'Closing_Rate']:.1f}%)</li>
+            <li>💰 <b>Highest Revenue:</b> {top_revenue} (Rp {performance_df.loc[top_revenue, 'Nilai_Aktual']/1e6:.1f}M)</li>
+            <li>⚡ <b>Most Efficient:</b> {top_efficiency} ({performance_df.loc[top_efficiency, 'Deal_per_Visit']:.3f} deals/visit)</li>
+            <li>⏱️ <b>Best AHT:</b> {best_aht_performer} ({performance_df.loc[best_aht_performer, 'Avg_Handling_Time']:.1f} days)</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    if len(underachievers) > 0:
+        st.markdown(f"""
+        <div style='background-color:#fff3e0;padding:1.5rem;border-radius:10px;border-left:5px solid #f57c00;margin-top:1rem;'>
+            <h4>🚨 <b>Performance Alerts</b></h4>
+            <p><b>Target Underachievers (&lt;80%):</b> {', '.join(underachievers.index.tolist())}</p>
+            <p><b>High AHT Concerns:</b> {', '.join(high_aht.index.tolist())}</p>
+            <p><b>Low Closing Rate:</b> {', '.join(low_closing.index.tolist())}</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Strategic recommendations
+    best_segmen = segmen_df.loc[segmen_df['Achievement_Persen'].idxmax(), 'Segmen']
+    worst_segmen = segmen_df.loc[segmen_df['Achievement_Persen'].idxmin(), 'Segmen']
+    
+    st.markdown(f"""
+    <div style='background-color:#e3f2fd;padding:1.5rem;border-radius:10px;border-left:5px solid #1976d2;margin-top:1rem;'>
+        <h4>� <b>Strategic Recommendations</b></h4>
+        <ol>
+            <li><b>Focus Segmentation:</b> Prioritize "{best_segmen}" segment (highest achievement) while developing strategy for "{worst_segmen}" segment</li>
+            <li><b>Process Optimization:</b> Implement best practices from {top_efficiency} to improve deal/visit ratio across team</li>
+            <li><b>AHT Improvement:</b> Conduct time management training for sales with AHT > {performance_df['Avg_Handling_Time'].median():.1f} days</li>
+            <li><b>Pipeline Acceleration:</b> Focus on converting Rp {total_pipeline/1e6:.1f}M pipeline value with targeted interventions</li>
+            <li><b>Target Recalibration:</b> Review targets for underperforming segments and provide additional support</li>
+        </ol>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ==========================
+    # 10. DURASI PROSES SALES ANALYSIS (existing code refined)
+    # ==========================
+    st.subheader("⏱️ Sales Process Duration Analysis")
+    
+    # Existing duration analysis code but enhanced
+    paska_deal_customers = filtered_df[filtered_df["Progress"] == "Paska Deal"]["ID_Customer"].unique()
+    df_paska = filtered_df[filtered_df["ID_Customer"].isin(paska_deal_customers)].copy().sort_values(["ID_Customer", "Tanggal"])
+
     def get_duration(group):
         inisiasi_date = group[group["Progress"] == "Inisiasi"]["Tanggal"].min()
         deal_date = group[group["Progress"] == "Paska Deal"]["Tanggal"].max()
@@ -322,88 +726,23 @@ elif page == "🟦 Performansi Sales":
     }).sort_values("Rata-rata Durasi (hari)").reset_index(drop=True)
     leaderboard_durasi["Rank"] = leaderboard_durasi["Rata-rata Durasi (hari)"].rank(method="min").astype(int)
 
-    best_sales = leaderboard_durasi.iloc[0]["Sales"]
-    best_duration = leaderboard_durasi.iloc[0]["Rata-rata Durasi (hari)"]
-
-    st.dataframe(leaderboard_durasi, use_container_width=True)
-
-    fig4 = px.bar(
-        leaderboard_durasi,
-        y='Sales',
-        x='Rata-rata Durasi (hari)',
-        orientation='h',
-        title="Kecepatan Proses Sales: Inisiasi ke Paska Deal",
-        color='Rata-rata Durasi (hari)',
-        color_continuous_scale='Greens'
-    )
-    fig4.update_layout(yaxis=dict(categoryorder='total ascending'))
-    st.plotly_chart(fig4, use_container_width=True)
-
-    # ==========================
-    # Ketercapaian Target
-    # ==========================
-    st.subheader("🎯 Leaderboard Ketercapaian Target Sales")
-
-    kontrak_per_sales = df[df["Progress"] == "Paska Deal"].groupby("Nama_Sales")["Nilai_Kontrak"].sum().reset_index()
-    kontrak_per_sales.rename(columns={"Nilai_Kontrak": "Total_Kontrak"}, inplace=True)
-    target_unique = df[["Nama_Sales", "ID_Customer", "Target_Sales"]].drop_duplicates()
-    target_per_sales = target_unique.groupby("Nama_Sales")["Target_Sales"].sum().reset_index()
-
-    df_target = pd.merge(kontrak_per_sales, target_per_sales, on="Nama_Sales", how="left")
-    df_target["Ketercapaian (%)"] = (df_target["Total_Kontrak"] / df_target["Target_Sales"]) * 100
-    df_target = df_target.sort_values("Ketercapaian (%)", ascending=False).reset_index(drop=True)
-    df_target["Rank"] = df_target["Ketercapaian (%)"].rank(method="min", ascending=False).astype(int)
-
-    st.dataframe(df_target[["Rank", "Nama_Sales", "Total_Kontrak", "Target_Sales", "Ketercapaian (%)"]], use_container_width=True)
-
-    fig5 = px.bar(
-        df_target,
-        y="Nama_Sales",
-        x="Ketercapaian (%)",
-        orientation="h",
-        color="Ketercapaian (%)",
-        color_continuous_scale="Blues",
-        title="Ketercapaian Target per Sales"
-    )
-    fig5.update_layout(yaxis=dict(categoryorder='total ascending'))
-    st.plotly_chart(fig5, use_container_width=True)
-
-    # ==========================
-    # Resume Insight & Rekomendasi Akhir
-    # ==========================
-    st.subheader("🧠 Resume Insight & Rekomendasi")
-
-    # Top performer (multi-metric)
-    top_by_closing = sales_perf['Closing_Rate'].idxmax()
-    top_by_kontrak = sales_perf['Nilai_Kontrak_Aktual'].idxmax()
-    top_by_target = df_target.iloc[0]['Nama_Sales']
+    col1, col2 = st.columns(2)
     
-    low_names = ', '.join(low_perf.index.tolist()) if not low_perf.empty else "-"
-
-    st.markdown(f"""
-    <div style='background-color:#f1f8e9;padding:1.5rem;border-radius:10px;border-left:5px solid #2e7d32;'>
-        <h4>🔝 <b>Sales Terbaik</b></h4>
-        <ul>
-            <li>📈 <b>Closing Rate Tertinggi:</b> {top_by_closing}</li>
-            <li>💰 <b>Nilai Kontrak Tertinggi:</b> {top_by_kontrak}</li>
-            <li>🎯 <b>Ketercapaian Target Tertinggi:</b> {top_by_target}</li>
-            <li>⚡ <b>Proses Paling Cepat (Inisiasi → Deal):</b> {best_sales} ({best_duration:.1f} hari)</li>
-        </ul>
-        ✅ Disarankan menjadikan mereka sebagai <b>mentor atau role model</b> bagi rekan-rekan lainnya.
-    </div>
-    """, unsafe_allow_html=True)
-
-    if not low_perf.empty:
-        st.markdown(f"""
-        <div style='background-color:#fff3e0;padding:1.5rem;border-radius:10px;border-left:5px solid #f57c00;margin-top:1rem;'>
-            <h4>🚩 <b>Sales yang Perlu Pendampingan</b></h4>
-            <p>📉 Ditemukan sales dengan aktivitas tinggi namun konversi rendah (Closing Rate &lt; 15%):</p>
-            <p><b>{low_names}</b></p>
-            <p>🔧 Rekomendasi: Lakukan <b>coaching</b> dan evaluasi teknik follow-up atau pendekatan terhadap customer.</p>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.success("✅ Tidak ada sales yang perlu pendampingan berdasarkan kriteria performa saat ini.")
+    with col1:
+        st.dataframe(leaderboard_durasi, use_container_width=True)
+    
+    with col2:
+        fig4 = px.bar(
+            leaderboard_durasi,
+            y='Sales',
+            x='Rata-rata Durasi (hari)',
+            orientation='h',
+            title="Speed to Close: Inisiasi → Paska Deal",
+            color='Rata-rata Durasi (hari)',
+            color_continuous_scale='Greens'
+        )
+        fig4.update_layout(yaxis=dict(categoryorder='total ascending'))
+        st.plotly_chart(fig4, use_container_width=True)
 
     
 elif page == "🟦 Profil Sales":
